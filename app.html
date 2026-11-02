@@ -1161,6 +1161,11 @@ function openProduct(id,keepCarousel=false){
   const cta=url?'<a class="product-cta" href="'+esc(url)+'" target="_blank" rel="'+(o.a?'sponsored nofollow noopener noreferrer':'noopener noreferrer')+'">'+(o.a?'Till butiken ↗':'Till erbjudandet ↗')+'</a>':'';
   const carouselButtons=activeProductIds.length>1?'<button type="button" class="product-carousel-btn prev" data-product-prev aria-label="Föregående erbjudande" title="Föregående erbjudande">‹</button><button type="button" class="product-carousel-btn next" data-product-next aria-label="Nästa erbjudande" title="Nästa erbjudande">›</button>':'';
   $('#modal').innerHTML='<div class="modal product-modal" data-product-close><section class="sheet product-sheet" role="dialog" aria-modal="true" aria-labelledby="product-dialog-title"><button type="button" class="product-close" data-product-close aria-label="Stäng produktdetaljer">×</button><div class="product-hero'+(/apoteket/i.test(o.s)?' apoteket-hero':'')+'" style="--tc:'+colr(o.col)+'"><span class="product-detail-discount">'+(o.lc?'Last chance':(offerBadge(o)||('-'+pct(o)+'%')))+'</span>'+image+carouselButtons+'</div><div class="product-store">'+esc(o.s)+' · '+esc(o.c)+'</div><h2 class="product-name" id="product-dialog-title">'+esc(o.n)+'</h2><div class="product-price"><strong>'+kr(o.p)+'</strong><s>'+kr(o.o)+'</s><span class="product-saving">'+(offerBadge(o)?offerBadge(o):'Spara '+kr(sv)+' ('+pct(o)+'%)')+'</span></div><div class="product-details">'+details+'</div>'+cta+'</section></div>';
+  if(!productHistoryEntryActive){
+    const currentState=history.state&&typeof history.state==='object'?history.state:{};
+    history.pushState({...currentState,fyndarenProductModal:true},'',location.href);
+    productHistoryEntryActive=true;
+  }
   const close=$('#modal .product-close');
   if(close)close.focus();
 }
@@ -1182,12 +1187,19 @@ document.addEventListener('touchend',e=>{
   if(Math.abs(dx)<45||Math.abs(dx)<Math.abs(dy)*1.25)return;
   stepProduct(dx<0?1:-1);
 },{passive:true});
-function closeProduct(){
+function closeProduct(fromPopState=false){
   const cardEl=document.querySelector('.card[data-product="'+(activeProductId||'')+'"]');
   $('#modal').innerHTML='';
   activeProductId=null;activeProductIds=[];activeProductIndex=0;
+  const removeHistoryEntry=productHistoryEntryActive&&!fromPopState;
+  productHistoryEntryActive=false;
   if(cardEl&&cardEl.isConnected)cardEl.focus();
+  if(removeHistoryEntry)history.back();
 }
+let productHistoryEntryActive=false;
+window.addEventListener('popstate',()=>{
+  if($('#modal .product-sheet'))closeProduct(true);
+});
 let activeProductId=null;
 let activeProductIds=[];
 let activeProductIndex=0;
