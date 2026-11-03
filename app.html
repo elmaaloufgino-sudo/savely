@@ -1099,6 +1099,17 @@ button:focus-visible,input:focus-visible,a:focus-visible{
   .hero>.campaign-card{flex-basis:46%}
 }
 
+
+/* ===== Touch: tillåt både sidscroll och horisontella listor ===== */
+@media (pointer: coarse){
+  .hero,.chips{
+    touch-action:pan-x pan-y;
+  }
+  .card,.card .tile,.card .info,.card h3,.card .price{
+    touch-action:pan-y;
+  }
+}
+
 </style>
 </head>
 <body>
