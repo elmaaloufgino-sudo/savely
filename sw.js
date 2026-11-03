@@ -1,5 +1,5 @@
-const CACHE = 'fyndaren-v21';
-const SHELL = ['./', 'index.html', 'app.html', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'pwa-icon-192.png'];
+const CACHE = 'fyndaren-v22';
+const SHELL = ['./', 'index.html', 'app.html', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'pwa-icon-192.png', 'pwa-icon-512.svg'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
