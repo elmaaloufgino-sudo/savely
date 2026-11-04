@@ -24,6 +24,12 @@ jobs:
           node-version: "22"
       - name: Check generated-page script syntax
         run: node --check scripts/generate-deal-pages.mjs
+      - name: Run read-only offer-page generation smoke test
+        run: |
+          node scripts/generate-deal-pages.mjs
+          test -s sitemap.xml
+          test -d fynd
+          find fynd -name index.html -type f | grep -q .
       - name: Check inline browser scripts
         shell: bash
         run: |
