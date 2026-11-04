@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="sv">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -66,11 +66,15 @@ function denyView(){
 }
 function formHTML(d){
   d=d||{};
-  const cats=['Mat','Elektronik','Apotek','Kläder'].map(c=>`<option ${d.category===c?'selected':''}>${c}</option>`).join('');
+  const currentCategory=d.category==='Mat'?'Mat & Dryck':(d.category||'');
+  const categoryChoices=['Mat & Dryck','Elektronik','Apotek','Kläder','Bygg & Hemmafix','Skönhet & Personlig vård','Hem & Inredning'];
+  if(currentCategory&&!categoryChoices.includes(currentCategory))categoryChoices.push(currentCategory);
+  const cats=categoryChoices.map(c=>`<option value="${esc(c)}" ${currentCategory===c||(!currentCategory&&c==='Mat & Dryck')?'selected':''}>${esc(c)}</option>`).join('');
   return `<div class="panel"><b id="ft">${editId?'Edit deal':'Add a deal'}</b>
   <div class="two"><div><label for="f_store">Store</label><input id="f_store" value="${esc(d.store)}" placeholder="ICA"></div><div><label for="f_cat">Category</label><select id="f_cat">${cats}</select></div></div>
   <label for="f_name">Product</label><input id="f_name" value="${esc(d.name)}" placeholder="Kycklingfilé 900 g">
-  <div class="two"><div><label for="f_price">Deal price (kr)</label><input id="f_price" inputmode="decimal" value="${esc(d.price)}"></div><div><label for="f_old">Original price (kr)</label><input id="f_old" inputmode="decimal" value="${esc(d.old_price)}"></div></div>
+  <div class="two"><div><label for="f_price">Kampanjpris (kr)</label><input id="f_price" inputmode="decimal" value="${esc(d.price)}"></div><div><label for="f_old">Tidigare lägsta pris (30 dagar, kr)</label><input id="f_old" inputmode="decimal" value="${esc(d.old_price)}"></div></div>
+  <p class="import-help">Vid prissänkningar ska jämförelsepriset vara butikens lägsta pris under de 30 dagarna före prissänkningen – inte ett rekommenderat pris. Kontrollera butikens prisunderlag innan du publicerar. Se <a href="https://www.konsumentverket.se/marknadsratt-foretag/prissankningar-regler-for-foretag/" target="_blank" rel="noopener noreferrer">Konsumentverkets vägledning</a>.</p>
   <div class="two"><div><label for="f_until">Valid until</label><input id="f_until" value="${esc(d.valid_until)}" placeholder="söndag eller 30/10"></div><div><label for="f_mem">Membership (optional)</label><input id="f_mem" value="${esc(d.membership)}" placeholder="ICA Stammis"></div></div>
   <div class="two"><div><label for="f_utext">Unit price text (optional)</label><input id="f_utext" value="${esc(d.unit_text)}" placeholder="87,78 kr/kg"></div><div><label for="f_uprice">Unit price number</label><input id="f_uprice" inputmode="decimal" value="${esc(d.unit_price)}" placeholder="87.78"></div></div>
   <label for="f_group">Compare group (optional, same name = compared together)</label><input id="f_group" value="${esc(d.compare_group)}" placeholder="Kyckling">
@@ -164,6 +168,8 @@ function collect(){
   const url=v('f_url').trim();
   if(url&&!/^https:\/\/\S+$/i.test(url))return {err:'The offer page link must start with https://'};
   const cond=v('f_cond').trim(),chk=v('f_chk');
+  if(!aff&&!url)return {err:'Lägg till en direktlänk till exakt produkt eller erbjudande.'};
+  if(!chk)return {err:'Ange datum när pris, villkor och produktlänk senast kontrollerades.'};
   return {p:{store,logo,color:v('f_color'),category:v('f_cat'),name,price,old_price:old,unit_text:v('f_utext').trim()||null,unit_price:num(v('f_uprice')),membership:v('f_mem').trim()||null,affiliate_url:aff||null,shop_url:url||null,valid_to:vt||null,checked_on:chk||null,conditions:cond||null,valid_until:until,compare_group:v('f_group').trim()||null}};
 }
 async function save(){
