@@ -11,7 +11,12 @@
 <meta property="og:title" content="Fyndaren – Veckans bästa fynd på ett ställe">
 <meta property="og:description" content="Erbjudanden, jämförpriser och rabattkoder från svenska butiker.">
 <meta property="og:type" content="website">
-<meta property="og:image" content="icon-512.png">
+<meta property="og:image" content="https://fyndaren.se/icon-512.png">
+<meta property="og:image:alt" content="Fyndaren – smarta fynd och erbjudanden">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Fyndaren – veckans bästa fynd">
+<meta name="twitter:description" content="Erbjudanden, jämförpriser och rabattkoder från svenska butiker.">
+<meta name="twitter:image" content="https://fyndaren.se/icon-512.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
@@ -201,15 +206,13 @@
         <li><a class="hover:text-emerald-300" href="mailto:hej@fyndaren.se">hej@fyndaren.se</a></li>
       </ul>
     </div>
-    <div>
-      <h2 class="font-semibold text-white">Veckobrev</h2>
-      <p class="mt-3 text-sm">Anmäl dig, så skickar vi en länk till veckans bästa fynd.</p>
-      <form id="nlForm" class="mt-3 flex flex-col gap-2 sm:flex-row" novalidate>
-        <label for="nlEmail" class="sr-only">Din e-postadress</label>
-        <input id="nlEmail" type="email" autocomplete="email" placeholder="din@epost.se" class="min-w-0 flex-1 rounded-xl border border-white/15 bg-ink px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/30">
-        <button type="submit" class="rounded-xl bg-emerald-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300">Anmäl mig</button>
-      </form>
-      <p id="nlMsg" role="alert" class="mt-2 min-h-[1.25rem] text-sm"></p>
+    <div id="newsletter">
+      <h2 class="font-semibold text-white">Veckans fynd i inkorgen</h2>
+      <p class="mt-3 text-sm">Vi förbereder ett riktigt nyhetsbrev med tydligt samtycke, e-postbekräftelse och enkel avregistrering.</p>
+      <div class="mt-3 rounded-xl border border-white/10 bg-ink/70 p-4 text-sm text-slate-300">
+        <b class="text-white">Prenumerationen öppnar snart.</b>
+        <p class="mt-1">Vi tar inte emot e-postadresser här ännu. Följ Fyndaren i våra sociala kanaler under tiden.</p>
+      </div>
     </div>
   </div>
   <div class="border-t border-white/10 px-5 py-5 text-center text-xs text-slate-400">© <span id="yr">2026</span> Fyndaren. Drivs av Gino El Maalouf.</div>
@@ -241,24 +244,9 @@
     }
   }));
 
-  // 3) Veckobrev: validerar e-post och öppnar ett färdigt mejl till hej@fyndaren.se
-  const form = document.getElementById('nlForm'), msg = document.getElementById('nlMsg'), input = document.getElementById('nlEmail');
-  form.addEventListener('submit', e => {
-    e.preventDefault();
-    const email = input.value.trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
-      msg.className = 'mt-2 min-h-[1.25rem] text-sm text-amber-300';
-      msg.textContent = 'Skriv en giltig e-postadress, till exempel namn@epost.se.';
-      input.focus();
-      return;
-    }
-    msg.className = 'mt-2 min-h-[1.25rem] text-sm text-emerald-300';
-    msg.textContent = 'Din e-postapp öppnas. Skicka mejlet för att anmäla dig.';
-    location.href = 'mailto:hej@fyndaren.se?subject=' + encodeURIComponent('Veckobrev från Fyndaren') +
-      '&body=' + encodeURIComponent('Hej! Jag vill få Fyndarens veckobrev på ' + email + '.');
-  });
+  // Newsletter signup will be connected after the consent-based provider form is configured.
 
-  // 4) Aktuellt år i sidfoten
+  // 3) Aktuellt år i sidfoten
   document.getElementById('yr').textContent = new Date().getFullYear();
 </script>
 </body>
