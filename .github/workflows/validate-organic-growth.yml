@@ -1,0 +1,50 @@
+name: Validate Fyndaren frontend
+
+on:
+  pull_request:
+    paths:
+      - "app.html"
+      - "admin.html"
+      - "index.html"
+      - "scripts/**/*.mjs"
+      - ".github/workflows/**"
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out pull request
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check generated-page script syntax
+        run: node --check scripts/generate-deal-pages.mjs
+      - name: Check inline browser scripts
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import pathlib
+          import re
+          import subprocess
+          import tempfile
+
+          files = ["app.html", "admin.html", "index.html"]
+          with tempfile.TemporaryDirectory() as tmp:
+              count = 0
+              for name in files:
+                  source = pathlib.Path(name).read_text(encoding="utf-8")
+                  scripts = re.findall(r"<script\\b(?![^>]*\\bsrc=)[^>]*>([\\s\\S]*?)</script>", source, re.I)
+                  for number, script in enumerate(scripts, start=1):
+                      if not script.strip():
+                          continue
+                      path = pathlib.Path(tmp) / f"{name.replace('.html', '')}-{number}.js"
+                      path.write_text(script, encoding="utf-8")
+                      subprocess.run(["node", "--check", str(path)], check=True)
+                      count += 1
+              print(f"Checked {count} inline scripts.")
+          PY
