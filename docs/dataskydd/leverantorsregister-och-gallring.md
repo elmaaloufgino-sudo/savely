@@ -113,3 +113,73 @@ Supabase rekommenderar att Free-projekt regelbundet exporterar databasen och fö
 - Supabase Pricing – Free-planens loggretention, Auth Audit Logs, automatiska backuper och Log Drains: https://supabase.com/pricing
 - Supabase Database Backups – Free-projekt saknar automatiska backuper och rekommenderas att exportera databasen själva: https://supabase.com/docs/guides/platform/backups
 - Supabase Log Query usage – loggtillgänglighet och begränsningar: https://supabase.com/docs/guides/platform/manage-your-usage/logs-query
+
+
+## 7. Backup- och återställningsplan – förberedelse 2026-11-04
+
+### Aktuell databasstorlek och innehåll
+
+Read-only kontroll mot projektet den 2026-11-04 visade cirka **11 MB** databasstorlek. Följande centrala tabeller fanns:
+
+| Tabell | Antal rader vid kontroll |
+|---|---:|
+| public.deals | 121 |
+| public.codes | 4 |
+| public.favorites | 2 |
+| public.admins | 1 |
+| public.reward_store_rates | 0 |
+| public.reward_transactions | 0 |
+| public.reward_catalog | 0 |
+| public.reward_redemptions | 0 |
+| auth.users | 5 |
+| auth.identities | 5 |
+| storage.objects | 0 |
+| storage.buckets | 0 |
+
+Detta är en ögonblicksbild, inte en garanterad aktuell mängd. Databasstorleken är liten nog för en manuell första export.
+
+### Viktig begränsning med Supabase CLI
+
+Supabase CLI `db dump` filtrerar bort Supabase-hanterade scheman, inklusive `auth` och `storage`, samt extensionsscheman. Den vanliga CLI-exporten är därför **inte ensam en fullständig backup av hela Fyndaren**. Den kan skydda egna databasscheman och data, men den ska inte marknadsföras eller betraktas som fullständig kontobackup utan separat lösning för Auth, Storage och projektinställningar.
+
+Supabase-dokumentationen beskriver även att Storage-objekt inte ingår i databasbackupen. Projektet hade vid kontrollen inga Storage-buckets eller Storage-objekt, men Auth innehöll fem användare. Att bevara dessa konton kräver särskild hantering. Lösenord får aldrig exporteras till klartext eller läggas i GitHub.
+
+### Rekommenderad första export (körs lokalt av projektägaren)
+
+1. Installera Supabase CLI och Docker Desktop på en betrodd dator.
+2. Öppna Supabase Dashboard för Savely och kopiera en databasanslutning via **Connect**. Använd session pooler om direktanslutning inte fungerar.
+3. Kör exporten lokalt. Lägg inte anslutningssträngen i GitHub, chatt, dokument eller shellhistorik som delas med andra.
+
+Exempelkommandon (ersätt platshållaren lokalt; publicera aldrig lösenordet):
+
+```bash
+supabase db dump --db-url "<CONNECTION_STRING>" -f roles.sql --role-only
+supabase db dump --db-url "<CONNECTION_STRING>" -f schema.sql
+supabase db dump --db-url "<CONNECTION_STRING>" -f data.sql --use-copy --data-only -x "storage.buckets_vectors" -x "storage.vector_indexes"
+```
+
+Spara exportfilerna krypterat på en separat plats som bara projektägaren kommer åt. Håll minst två kopior på två separata platser och testa att filerna går att läsa. Lägg aldrig backupfiler i detta GitHub-repo eftersom de kan innehålla personuppgifter och affärsdata.
+
+### Återställningstest – får inte göras mot produktion
+
+- Återställ aldrig testbackupen över produktionsprojektet.
+- Använd en separat lokal Supabase-miljö eller ett separat testprojekt. Skapa inte ett nytt betalt projekt utan att först kontrollera kostnaden och få ägarens uttryckliga godkännande.
+- Kontrollera efter återställning att egna tabeller, antal rader, funktioner, triggers, RLS-policyer och grants finns kvar.
+- CLI-dumpen exkluderar `auth` och `storage`; återställningstestet av just dessa exporter visar därför inte att användarkonton eller Storage-objekt kan återställas. Testa separat metod för Auth innan backupen kallas komplett.
+- Verifiera att testmiljön inte skickar riktiga e-postmeddelanden, pushnotiser eller externa webhook-anrop.
+- Dokumentera datum, CLI-version, exportens filstorlekar, kontrollsummor, återställningsresultat och eventuella avvikelser. Radera testkopior säkert efter testet.
+
+### Status
+
+- Databasens storlek och centrala radantal har kontrollerats via read-only SQL.
+- Ingen databasexport har ännu skapats.
+- Ingen backup har laddats upp till GitHub eller annan extern lagring.
+- Ingen återställning har ännu genomförts.
+- Nästa operativa steg kräver att projektägaren kör exporten från en betrodd dator och väljer en krypterad lagringsplats. Assistenten ska inte be om eller ta emot databaslösenord, service-role-nyckel eller Supabase access token i chatten.
+
+### Supabase-källor
+
+- Database Backups: https://supabase.com/docs/guides/platform/backups
+- Backup and Restore using the CLI: https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore
+- CLI db dump (scheman som exkluderas): https://supabase.com/docs/reference/cli/supabase-db-dump
+- User Management: https://supabase.com/docs/guides/auth/managing-user-data
