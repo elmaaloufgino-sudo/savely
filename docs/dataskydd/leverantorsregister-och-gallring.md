@@ -1,7 +1,7 @@
 # Internt arbetsunderlag: leverantörsregister och gallring
 
 **Fyndaren – arbetsversion 2026-11-04**  
-**Status: utkast för ägarens kontroll. Inte en färdig juridisk bedömning och inte avsett som offentlig integritetstext.**
+**Status: internt arbetsunderlag. Ägaren har den 4 november 2026 godkänt de föreslagna planeringsperioderna för supportmejl, normala driftloggar och framtida råa aktivitetsdata. Inte en färdig juridisk bedömning och inte avsett som offentlig integritetstext.**
 
 Det här dokumentet skiljer mellan vad som har observerats i aktuell kod/databas, vad leverantörerna själva uppger i sina publicerade villkor och vad Fyndaren ännu måste kontrollera i sina egna konton och avtal.
 
@@ -24,22 +24,22 @@ Det här dokumentet skiljer mellan vad som har observerats i aktuell kod/databas
 - En offentlig integritetspolicy hos en leverantör är inte i sig bevis på att Fyndaren har rätt avtal eller att leverantören är personuppgiftsbiträde i varje enskilt flöde.
 - Exakta loggperioder ska inte anges i Fyndarens policy förrän de har verifierats i respektive avtal/kontoinställning.
 
-## 2. Gallringsförslag – kräver ägarbeslut
+## 2. Gallringsplan – ägarens planeringsbeslut 2026-11-04
 
-GDPR anger inte en generell tidsgräns för alla uppgifter. Fyndaren måste välja perioder utifrån ändamål, dokumentera motiveringen och införa faktisk automatisk eller manuell gallring. Tabellen nedan är ett förslag till intern diskussion, inte verifierade nuvarande retentionstider eller juridiska krav.
+GDPR anger inte en generell tidsgräns för alla uppgifter. Fyndaren måste välja perioder utifrån ändamål, dokumentera motiveringen och införa faktisk automatisk eller manuell gallring. Ägaren har godkänt följande planeringsperioder: 12 månader för supportmejl efter avslutat ärende, 30 dagar för normala egna drift-/felsökningsloggar och högst 90 dagar för framtida råa aktivitetsdata innan aggregering eller radering. Dessa är interna beslutade riktlinjer – inte verifierade nuvarande retentionstider hos leverantörer och inte tidsfrister som GDPR föreskriver.
 
 | Datatyp | Föreslagen regel | När radering/gallring sker | Måste beslutas/verifieras |
 |---|---|---|---|
 | Konto (e-post, Auth-profil) | Behåll medan kontot är aktivt. Vid raderingsbegäran: radera eller anonymisera utan onödigt dröjsmål efter identitetskontroll och kontroll av eventuella rättsliga hinder. | Kontoradering eller giltig begäran. | Bestäm eventuell inaktivitetsregel; ingen automatisk radering enbart på grund av inaktivitet föreslås innan användaren informerats. |
 | Sparlista | Kopplad till kontot och raderas när kontot raderas, om inte användaren separat begär tidigare radering. | Kontoradering eller borttagning av enskilt sparat objekt. | Verifiera kaskadradering och backuphantering. |
 | Belönings-/inlösenhistorik | Behåll bara så länge det krävs för att administrera poäng, kundtvister och eventuella bokförings-/rättsliga skyldigheter. Separera uppgifter som måste bevaras från konto-/marknadsföringsprofil. | När respektive ändamål och eventuell lagstadgad bevarandeskyldighet upphör. | Kontrollera om Fyndaren faktiskt bedriver bokföringspliktig belöningshantering och vilken dokumentation som krävs. Ingen generell period fastställs här. |
-| Supportmejl | Förslag: radera 12 månader efter avslutat ärende, om inte ärendet behöver sparas längre för ett konkret rättsligt anspråk. | 12 månader efter avslutat ärende enligt föreslaget schema. | Ägarbeslut och kontroll av e-postleverantörens backup/loggar. |
-| Säkerhets- och driftloggar hos Fyndaren | Förslag: 30 dagar för normala felsökningsloggar; längre endast vid dokumenterad incident eller rättsligt behov. | Automatisk radering efter beslutad period. | Kontrollera vad Supabase/GitHub/STRATO faktiskt erbjuder och kan styras av Fyndaren. Detta styr inte automatiskt leverantörernas egna loggar. |
+| Supportmejl | Beslutad planeringsperiod: radera 12 månader efter avslutat ärende, om inte ärendet behöver sparas längre för ett konkret rättsligt anspråk. | 12 månader efter avslutat ärende enligt föreslaget schema. | Ägarens periodbeslut är klart. Kontrollera e-postleverantörens backup/loggar och inför gallringsrutinen. |
+| Säkerhets- och driftloggar hos Fyndaren | Beslutad planeringsperiod: 30 dagar för normala egna felsökningsloggar; längre endast vid dokumenterad incident eller rättsligt behov. | Automatisk radering efter beslutad period. | Ägarens periodbeslut är klart för Fyndarens egna loggar. Kontrollera vad Supabase/GitHub/STRATO faktiskt erbjuder och kan styras av Fyndaren. Detta styr inte automatiskt leverantörernas egna loggar. |
 | Tillfälliga app-/webbläsarcacher | Rensas vid versionsbyte/utgång och genom webbläsarens cachehantering; ska inte användas som kundprofil. | Cacheversion ersätts eller webbläsaren rensar lagringen. | Verifiera service worker-cache keys, versionsbyte och om någon personlig information någonsin cachas. |
 | Samtyckesbevis (framtida) | Behåll minsta bevisdata så länge samtycket används och under en dokumenterad period efter återkallelse för att kunna visa vad som gällde och förhindra ny kontakt. | När bevis-/ansvarsändamålet upphör. | Bestäm en separat period och rättslig motivering innan samtyckesfunktionen byggs. |
 | Nyhetsbrevslista (framtida) | Aktiv prenumeration så länge samtycket är aktivt. Efter avregistrering: ta bort från utskickslistan men behåll minsta spärr-/bevisuppgift så att personen inte av misstag läggs till igen. | Återkallat samtycke/avregistrering. | Välj e-postleverantör och bestäm suppression-listans fält och retention. |
 | Push-token (framtida) | Behåll endast medan prenumerationen är aktiv; radera vid avregistrering, ogiltig token eller återkallad behörighet när detta upptäcks. | Avregistrering eller invalid token. | Bestäm teknisk kontroll och pushleverantör innan funktionen införs. |
-| Råa aktivitetsdata (framtida) | Samla inte in om aggregerad statistik räcker. Om nödvändigt: föreslagen maxperiod 90 dagar och därefter aggregera eller radera. | Automatisk gallring efter beslutad period. | DPIA-/intresseavvägning och tydlig ändamålsbeskrivning innan insamling. |
+| Råa aktivitetsdata (framtida) | Samla inte in om aggregerad statistik räcker. Om nödvändigt: beslutad planeringsperiod högst 90 dagar och därefter aggregera eller radera. | Automatisk gallring efter beslutad period. | Periodbeslutet är klart. DPIA-/intresseavvägning och tydlig ändamålsbeskrivning krävs fortfarande innan insamling. |
 
 ## 3. Tekniska rekommendationer som minskar exponeringen
 
@@ -55,10 +55,9 @@ GDPR anger inte en generell tidsgräns för alla uppgifter. Fyndaren måste väl
 - Bekräfta att personuppgiftsansvarig och kontaktuppgifter i policyn är korrekta.
 - Bekräfta om STRATO fortfarande hanterar både domän och e-postvidarebefordran.
 - Bekräfta att Supabase DPA är accepterat/ingår och spara aktuell underbiträdeslista.
-- Bekräfta om supportmejl ska gallras efter föreslagna 12 månader.
-- Bekräfta om normala egna drift-/felsökningsloggar ska ha 30 dagars retention.
+- Inför den godkända planeringsperioden 12 månader för supportmejl och 30 dagar för normala egna drift-/felsökningsloggar; verifiera e-postleverantörens respektive driftleverantörernas egna retention separat.
 - Bekräfta hur belöningshistorik ska hanteras och om bokföringsregler blir tillämpliga.
-- Bestäm om externa fonts/CDN-skript ska tas bort eller självhostas.
+- Ägarens gallringsperioder är beslutade som planeringsriktlinjer; de måste nu omsättas i tekniska rutiner och verifieras. Bestäm om externa fonts/CDN-skript ska tas bort eller självhostas.
 - Genomför en faktisk nätverks-/webbläsarkontroll av cookies, localStorage, IndexedDB, Cache API, service worker och externa anrop innan cookieinformationen markeras som verifierad.
 
 ## 5. Källor för intern kontroll
