@@ -29,7 +29,9 @@ jobs:
           node scripts/generate-deal-pages.mjs
           test -s sitemap.xml
           test -d fynd
-          find fynd -name index.html -type f | grep -q .
+          page_count="$(find fynd -name index.html -type f | wc -l)"
+          test "$page_count" -gt 0
+          echo "Generated $page_count offer pages."
       - name: Check inline browser scripts
         shell: bash
         run: |
