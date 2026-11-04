@@ -69,11 +69,22 @@ const active = rows.filter(deal => {
   return deal.id != null && deal.name && deal.store && Number.isFinite(price) && price > 0 && (!end || end >= today);
 });
 
+const verifiedImageByDealId = {
+  201: "https://media.apotea.se/product-images/XL/mittval-myfocus-100-tabletter-0.jpg",
+  202: "https://media.apotea.se/product-images/XL/mittval-kvinna-100-tabletter-1-6.jpg",
+  203: "https://media.apotea.se/product-images/XL/mittval-sport-100-tabletter-1-6.jpg",
+  204: "https://www.laroche-posay.se/-/media/project/loreal/brand-sites/lrp/emea/nordics/products/toleriane/toleriane-foam-in-gel-hydrating-purifying-double-cleanser/lrp-toleriane-foam-in-gel-hydrating-purifying-double-cleanser-pack-front.png?amp%3Bch=600&amp%3Bcw=600&amp%3Bcy=0&cx=0&hash=ED2BD6B8F13C41CAF2507CF48731B9B8",
+  205: "https://media.meds.se/meds/images/7319861019902_1/460/460/fill/c/aco-deo-sensitive-50-ml.jpg",
+  206: "https://luxplus.imgix.net/content/product/image/72116-63136-1669804131.jpg?auto=format&w=800&h=800&fill-color=FFFFFF&fill=solid&fit=fillmax&dpr=1",
+  207: "https://www.apoteket.se/produktbilder/Validoo/702655js.jpg",
+  208: "https://biosalma.se/wp-content/uploads/2024/06/Magnesium-375mg-1.png"
+};
+
 function makePage(deal) {
   const id = Number(deal.id);
   const slug = slugify(deal.store + " " + deal.name) + "-" + id;
   const canonical = BASE_URL + "/fynd/" + slug + "/";
-  const image = validHttps(deal.image_url);
+  const image = validHttps(deal.image_url) || validHttps(verifiedImageByDealId[id]);
   const imageUrl = image || BASE_URL + "/icon-512.png";
   const retailer = validHttps(deal.affiliate_url) || validHttps(deal.shop_url);
   const isAffiliate = !!validHttps(deal.affiliate_url);
@@ -163,7 +174,7 @@ function makePage(deal) {
     '});',
     '</script>',
     '</body></html>'
-  ].join("\\n");
+  ].join("\n");
 }
 
 rmSync(OUT_DIR, { recursive: true, force: true });
@@ -188,6 +199,6 @@ const sitemap = [
   '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
   ...sitemapUrls.map(url => "  <url><loc>" + html(url) + "</loc></url>"),
   '</urlset>'
-].join("\\n");
+].join("\n");
 writeFileSync(join(ROOT, "sitemap.xml"), sitemap, "utf8");
 console.log("Generated " + active.length + " public offer pages and sitemap.xml for " + today + ".");
