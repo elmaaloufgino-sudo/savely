@@ -3,71 +3,81 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#07100e">
+<meta name="theme-color" content="#0A0A0C">
 <title>Integritetspolicy – Fyndaren</title>
-<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
 <style>
-:root{--bg:#07100e;--card:#152722;--ink:#f3f4f6;--mute:#9ca3af;--green:#34d399;--line:rgba(255,255,255,.08);color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root{--bg:#0A0A0C;--card:#141416;--ink:#f3f4f6;--mute:#a1a1aa;--gold:#D4AF37;--gold-light:#E6CA65;--line:rgba(255,255,255,.1);color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.6;max-width:640px;margin-inline:auto;padding:20px 18px 48px}
-a{color:var(--green)}
+body{margin:0;background:radial-gradient(120% 60% at 50% -10%,#1a1608,#0A0A0C 55%) fixed;color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.65;max-width:720px;margin-inline:auto;padding:20px 18px 48px}
+a{color:var(--gold-light)}
 .back{display:inline-block;margin-bottom:18px;text-decoration:none;font-weight:600}
-h1{font-size:26px;margin:0 0 6px}
-h2{font-size:18px;margin:28px 0 8px;color:var(--green)}
+h1{font-size:27px;margin:0 0 6px}
+h2{font-size:18px;margin:28px 0 8px;color:var(--gold-light)}
 p,li{color:#d1d5db}
 ul{padding-left:20px}
 .upd{color:var(--mute);font-size:14px}
-.box{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin:18px 0}
+.box{background:var(--card);border:1px solid rgba(212,175,55,.28);border-radius:16px;padding:14px 16px;margin:18px 0}
 </style>
 </head>
 <body>
-<a class="back" href="./">← Till Fyndaren</a>
+<a class="back" href="app.html">← Till Fyndaren</a>
 <h1>Integritetspolicy</h1>
-<p class="upd">Senast uppdaterad: 24 oktober 2026</p>
-<p>Här förklarar vi hur Fyndaren (fyndaren.se) hanterar dina personuppgifter.</p>
+<p class="upd">Senast uppdaterad: 4 november 2026</p>
+<p>Den här policyn beskriver hur Fyndaren (fyndaren.se) behandlar personuppgifter när du besöker webbplatsen eller använder appens funktioner.</p>
 
-<h2>Vem ansvarar för dina uppgifter?</h2>
-<p>Personuppgiftsansvarig är Gino El Maalouf. Kontakt: <a href="mailto:hej@fyndaren.se">hej@fyndaren.se</a>.</p>
+<div class="box"><b>Personuppgiftsansvarig</b><br>Gino El Maalouf<br>Kontakt: <a href="mailto:hej@fyndaren.se">hej@fyndaren.se</a></div>
 
-<h2>Vilka uppgifter vi behandlar</h2>
+<h2>Vilka uppgifter behandlas?</h2>
 <ul>
-<li><b>Konto:</b> din e-postadress och ditt lösenord när du skapar ett konto. Lösenordet lagras inte i klartext, utan hanteras krypterat av vår inloggningsleverantör.</li>
-<li><b>Sparlista:</b> vilka erbjudanden du har sparat, kopplat till ditt konto.</li>
-<li><b>Tekniska uppgifter:</b> till exempel IP-adress och enhetsinformation, som tjänsteleverantörerna loggar för att sidan ska fungera och vara säker.</li>
-<li><b>Meddelanden:</b> om du mejlar oss sparar vi mejlet och våra svar så länge ärendet kräver det.</li>
-</ul>
-<p>Fyndaren använder i dag ingen webbanalys och ingen reklamspårning.</p>
-
-<h2>Varför vi behandlar uppgifterna</h2>
-<ul>
-<li>För att ge dig ett konto och en sparlista (avtal med dig).</li>
-<li>För att hålla tjänsten säker och fungerande (vårt berättigade intresse).</li>
-<li>För att svara när du kontaktar oss.</li>
+<li><b>Konto och inloggning:</b> e-postadress och autentiseringsuppgifter när du skapar ett konto eller loggar in. Lösenord hanteras av Supabase och lagras inte i klartext av Fyndaren.</li>
+<li><b>Sparlista:</b> vilka erbjudanden du väljer att spara, kopplat till ditt konto.</li>
+<li><b>Belöningar:</b> om du använder belöningsfunktionerna kan uppgifter om poäng, transaktioner och inlösenförfrågningar behandlas.</li>
+<li><b>Tekniska uppgifter:</b> exempelvis IP-adress, webbläsar- och enhetsinformation samt tekniska loggar som våra drift- och tjänsteleverantörer kan behandla för drift, felsökning och säkerhet.</li>
+<li><b>Kontakt:</b> innehållet i mejl som du skickar till oss och våra svar.</li>
 </ul>
 
-<h2>Vilka som hanterar uppgifter åt oss</h2>
+<h2>Varför och med vilken rättslig grund?</h2>
 <ul>
-<li><b>Supabase:</b> databas och inloggning.</li>
-<li><b>GitHub:</b> driver webbplatsen (GitHub Pages).</li>
-<li><b>Google Fonts:</b> typsnitt hämtas från Google, vilket innebär att din IP-adress skickas till Google när du öppnar appen.</li>
-<li><b>STRATO:</b> domännamnet och e-postvidarebefordran för hej@fyndaren.se.</li>
+<li><b>Konto, sparlista och belöningsfunktioner:</b> för att tillhandahålla de funktioner du använder och administrera ditt konto (avtal).</li>
+<li><b>Drift och säkerhet:</b> för att skydda och hålla tjänsten fungerande (berättigat intresse).</li>
+<li><b>Support och kontakt:</b> för att kunna besvara frågor och hantera ärenden (berättigat intresse eller, när det är relevant, åtgärder på din begäran).</li>
 </ul>
-<p>Vi säljer inte dina uppgifter. Leverantörerna kan behandla uppgifter utanför EU/EES, till exempel i USA. De använder då normalt en godkänd skyddsmekanism, till exempel EU-kommissionens standardavtalsklausuler.</p>
 
-<h2>Cookies och lagring i din webbläsare</h2>
-<p>Appen sparar din inloggning och en kopia av appens filer i webbläsaren för att fungera snabbt. Det är nödvändigt för tjänsten och används inte för reklam. När du klickar dig vidare till en butik kan butiken eller ett affiliate-nätverk sätta egna cookies för att registrera köp. Då gäller deras policy.</p>
+<h2>Vilka leverantörer kan behandla uppgifter?</h2>
+<ul>
+<li><b>Supabase:</b> databas och inloggning för konto, sparlista och belöningsfunktioner.</li>
+<li><b>GitHub Pages:</b> webbhotell för webbplatsens filer och tillhörande teknisk drift.</li>
+<li><b>Google Fonts:</b> leverans av typsnitt. När typsnitten hämtas kan din IP-adress och tekniska anslutningsuppgifter delas med Google.</li>
+<li><b>jsDelivr:</b> leverans av Supabase JavaScript-biblioteket till appen.</li>
+<li><b>Tailwind CSS CDN:</b> leverans av stilmallsbibliotek till webbplatsens startsida.</li>
+<li><b>Externa bildleverantörer och butiker:</b> produkt- och butiksbilder kan hämtas direkt från externa servrar. När en sådan bild visas kan leverantören ta emot tekniska anslutningsuppgifter, exempelvis IP-adress.</li>
+<li><b>STRATO:</b> domänrelaterade tjänster och e-postvidarebefordran för hej@fyndaren.se.</li>
+</ul>
+<p>Vi säljer inte dina personuppgifter. Vissa leverantörer kan behandla uppgifter utanför EU/EES. Vilka överföringsmekanismer och skyddsåtgärder som gäller beror på respektive leverantör och dess aktuella avtal och villkor. Kontakta oss om du vill ha mer information om skyddsåtgärderna för en viss behandling.</p>
 
-<h2>Hur länge vi sparar uppgifterna</h2>
-<p>Konto och sparlista sparas så länge du har ett konto. Vill du att vi tar bort dem, mejla oss så raderar vi dem.</p>
+<h2>Cookies och lagring i webbläsaren</h2>
+<p>Appen använder webbläsarlagring för att komma ihåg en inloggad session och en service worker-cache för appens filer. Dessa funktioner används för inloggning och appens funktion, inte för att skapa reklamprofiler eller analysera ditt beteende. Vi använder för närvarande ingen webbanalys eller egen reklamspårning. Mer information finns i vår <a href="cookiepolicy.html">cookieinformation</a>.</p>
+
+<h2>Länkar till butiker och affiliatenätverk</h2>
+<p>När du följer en länk lämnar du Fyndaren och besöker butikens eller ett affiliatenätverks tjänst. De kan använda egna cookies eller annan teknik för att mäta hänvisningar och köp. Deras egen integritets- och cookieinformation gäller då. Fyndaren får inte automatiskt tillgång till uppgifter som butiken samlar in om dig.</p>
+
+<h2>Hur länge sparas uppgifterna?</h2>
+<ul>
+<li><b>Konto och sparlista:</b> sparas så länge kontot finns kvar. Du kan begära att kontot och tillhörande uppgifter raderas genom att mejla oss.</li>
+<li><b>Belöningsuppgifter:</b> sparas så länge det behövs för att administrera poäng, transaktioner och inlösen samt hantera eventuella skyldigheter eller tvister.</li>
+<li><b>Kontaktmejl:</b> sparas så länge det behövs för att hantera ärendet och följa upp det.</li>
+<li><b>Tekniska loggar:</b> lagringstiden bestäms i stor utsträckning av respektive drift- och tjänsteleverantörs rutiner.</li>
+</ul>
 
 <h2>Dina rättigheter</h2>
-<p>Du har rätt att få veta vilka uppgifter vi har om dig, få fel rättade, få uppgifter raderade, begränsa eller invända mot behandlingen och få ut dina uppgifter. Kontakta oss på <a href="mailto:hej@fyndaren.se">hej@fyndaren.se</a>. Du kan också klaga hos Integritetsskyddsmyndigheten (IMY), <a href="https://www.imy.se">imy.se</a>.</p>
+<p>Du kan begära tillgång till dina personuppgifter, rättelse, radering eller begränsning av behandlingen. Du kan också invända mot behandling som grundas på berättigat intresse och, när förutsättningarna är uppfyllda, begära dataportabilitet. Kontakta <a href="mailto:hej@fyndaren.se">hej@fyndaren.se</a> för att använda dina rättigheter.</p>
+<p>Du har även rätt att lämna klagomål till <a href="https://www.imy.se" rel="noopener noreferrer">Integritetsskyddsmyndigheten (IMY)</a>.</p>
 
 <h2>Barn</h2>
-<p>Fyndaren riktar sig inte till barn under 13 år.</p>
+<p>Fyndaren riktar sig inte särskilt till barn.</p>
 
 <h2>Ändringar</h2>
-<p>Vi kan uppdatera policyn. Det senaste datumet står överst på sidan.</p>
-
+<p>Vi kan uppdatera policyn när tjänsten eller reglerna förändras. Det senaste uppdateringsdatumet visas högst upp på sidan.</p>
 </body>
 </html>
