@@ -71,3 +71,45 @@ GDPR anger inte en generell tidsgräns för alla uppgifter. Fyndaren måste väl
 - Tailwind CSS – Play CDN är avsett för utveckling, inte produktion: https://tailwindcss.com/docs/installation/play-cdn
 - STRATO – Integritetspolicy: https://www.strato.se/integritetspolicy/
 
+
+
+## 6. Teknisk kontroll mot aktuell `main` – 2026-11-04
+
+Kontrollen är en statisk kodgranskning av GitHub-grenen `main`, inte ett live-webbläsartest.
+
+### Observerat i koden
+
+- `app.html` skapar Supabase-klienten med `window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)` utan egna auth-/storagealternativ. Supabase JS standardinställningar används därför; klientens sessionspersistens behöver beskrivas och verifieras mot den SDK-version som faktiskt laddas.
+- Appkoden innehåller inga direkta anrop/referenser till `document.cookie`, `localStorage`, `sessionStorage` eller `indexedDB`. Det betyder inte att inga sådana lagringsmekanismer används av bibliotek eller webbläsare.
+- Ingen cookie-/samtyckesdialog eller kod för att spara val av icke-nödvändiga cookies identifierades i `app.html`.
+- `sw.js` skapar Cache API-cachen `fyndaren-v22`, lägger appens egna skalresurser i cachen och rensar äldre Fyndaren-cachar vid aktivering. Den hanterar endast GET-förfrågningar till samma origin; externa resurser, databas, inloggning, typsnitt och script går direkt till nätverket enligt kommentar och kod.
+- Supabase JS laddas från jsDelivr. Google Fonts laddas från Google Fonts. Det innebär externa nätverksanrop från besökarens webbläsare.
+- Det här kodutdraget visar inte en fullständig inventering av bilddomäner eftersom erbjudandebilder och deras URL:er kan komma från databasinnehåll. Den listan måste tas fram från aktiva poster och kompletteras med en nätverksinspektion.
+- Registreringsfunktionen i `main` accepterar fortfarande lösenord med minst 6 tecken. PR #79 med klientvalidering på 12 tecken är ännu inte sammanslagen. Den ändringen är dessutom inte en ersättning för serverinställd lösenordspolicy i Supabase Auth.
+
+### Supabase-plan och retention som kunde verifieras
+
+Projektinformationen visar att Savely-projektet är aktivt i region `eu-west-1` och att organisationen har **Free-planen**. Supabases aktuella planinformation anger för Free:
+
+- API-/databasloggar: 1 dags åtkomst/retention.
+- Auth Audit Logs: 1 timmes åtkomst.
+- Automatiska databasbackuper: ingår inte i Free-planen.
+- Log Drains: ingår inte i Free-planen.
+
+Supabase rekommenderar att Free-projekt regelbundet exporterar databasen och förvarar säkerhetskopior på annan plats. Detta är leverantörens plannivå, inte Fyndarens egen 30-dagars gallringsregel. Fyndaren kan inte lova 30 dagars tillgänglighet för Supabases loggar på nuvarande plan.
+
+**Praktisk konsekvens:** 30-dagarsperioden gäller endast Fyndarens egna loggar om sådana införs och kontrolleras av Fyndaren. Den ska inte skrivas som retentionstid för Supabase. För support- och säkerhetsutredningar måste Fyndaren därför ha egna minimerade loggar och/eller acceptera att Supabases tillgängliga logghistorik är kortare.
+
+### Kvar att verifiera i drift
+
+- Genomför webbläsartest på `https://fyndaren.se` och `https://fyndaren.se/app.html`: DevTools Network, Application/Storage och Cookies. Kontrollera både utloggad och inloggad användare, samt efter avslag på frivilliga val när samtyckesfunktionen finns.
+- Exportera den faktiska listan över externa bilddomäner från aktiva erbjudanden och verifiera samtliga nätverksanrop.
+- Kontrollera exakt vilka Supabase Auth-/sessioninställningar som är aktiva i Dashboard. Koden ensam bevisar inte den fullständiga serverkonfigurationen.
+- Skapa en schemalagd, krypterad och åtkomstbegränsad databasexport utanför Supabase Free om verksamheten behöver återställningsmöjlighet. Testa återläsning innan lösningen betraktas som backup.
+- Kontrollera e-postleverantörens faktiska avtal, vidarebefordringsflöde, backup och gallring i STRATO-kontot. Detta går inte att läsa ut från GitHub eller Supabase-projektets metadata.
+
+### Källor till planuppgifterna
+
+- Supabase Pricing – Free-planens loggretention, Auth Audit Logs, automatiska backuper och Log Drains: https://supabase.com/pricing
+- Supabase Database Backups – Free-projekt saknar automatiska backuper och rekommenderas att exportera databasen själva: https://supabase.com/docs/guides/platform/backups
+- Supabase Log Query usage – loggtillgänglighet och begränsningar: https://supabase.com/docs/guides/platform/manage-your-usage/logs-query
