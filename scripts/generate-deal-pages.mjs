@@ -1,15 +1,19 @@
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = process.cwd();
 const BASE_URL = "https://fyndaren.se";
 const OUT_DIR = join(ROOT, "fynd");
+const MAX_CHECK_AGE_DAYS = 7;
+const DAY_MS = 24 * 60 * 60 * 1000;
 const today = new Intl.DateTimeFormat("sv-SE", {
   timeZone: "Europe/Stockholm",
   year: "numeric",
   month: "2-digit",
   day: "2-digit"
 }).format(new Date());
+const todayMs = Date.parse(today + "T00:00:00Z");
+const freshnessCutoff = new Date(todayMs - MAX_CHECK_AGE_DAYS * DAY_MS).toISOString().slice(0, 10);
 
 const html = value => String(value ?? "").replace(/[&<>"']/g, ch => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -40,6 +44,9 @@ const dateLabel = value => {
     day: "numeric", month: "long", year: "numeric", timeZone: "UTC"
   }).format(parsed);
 };
+const validDate = value => /^\d{4}-\d{2}-\d{2}$/.test(String(value || "").slice(0, 10))
+  ? String(value).slice(0, 10)
+  : "";
 
 const appHtml = readFileSync(join(ROOT, "app.html"), "utf8");
 const supabaseUrl = appHtml.match(/const SUPABASE_URL='([^']+)'/)?.[1];
@@ -48,8 +55,8 @@ if (!supabaseUrl || !publicKey) throw new Error("Could not read the public Supab
 
 const endpoint = new URL("/rest/v1/deals", supabaseUrl);
 endpoint.searchParams.set("select", "id,store,name,category,price,old_price,unit_text,membership,affiliate_url,shop_url,valid_to,valid_until,checked_on,conditions,image_url");
-endpoint.searchParams.set("or", "(valid_to.is.null,valid_to.gte." + today + ")");
 endpoint.searchParams.set("order", "id.asc");
+endpoint.searchParams.set("limit", "5000");
 
 const response = await fetch(endpoint, {
   headers: {
@@ -63,10 +70,9 @@ if (!response.ok) throw new Error("Supabase deal read failed: HTTP " + response.
 const rows = await response.json();
 if (!Array.isArray(rows)) throw new Error("Supabase did not return a deal list.");
 
-const active = rows.filter(deal => {
+const deals = rows.filter(deal => {
   const price = Number(deal.price);
-  const end = deal.valid_to ? String(deal.valid_to).slice(0, 10) : "";
-  return deal.id != null && deal.name && deal.store && Number.isFinite(price) && price > 0 && (!end || end >= today);
+  return deal.id != null && deal.name && deal.store && Number.isFinite(price) && price > 0;
 });
 
 const verifiedImageByDealId = {
@@ -84,6 +90,11 @@ function makePage(deal) {
   const id = Number(deal.id);
   const slug = slugify(deal.store + " " + deal.name) + "-" + id;
   const canonical = BASE_URL + "/fynd/" + slug + "/";
+  const validTo = validDate(deal.valid_to);
+  const checkedOn = validDate(deal.checked_on);
+  const expired = !!validTo && validTo < today;
+  const recentlyChecked = !!checkedOn && checkedOn <= today && checkedOn >= freshnessCutoff;
+  const indexable = !expired && recentlyChecked;
   const image = validHttps(deal.image_url) || validHttps(verifiedImageByDealId[id]);
   const imageUrl = image || BASE_URL + "/icon-512.png";
   const retailer = validHttps(deal.affiliate_url) || validHttps(deal.shop_url);
@@ -93,19 +104,26 @@ function makePage(deal) {
   const previousPrice = Number.isFinite(oldPrice) && oldPrice > Number(deal.price)
     ? '<p class="old-price">Tidigare pris enligt kampanjuppgiften: <s>' + html(money(oldPrice)) + '</s></p>'
     : "";
-  const expiry = deal.valid_to ? "Gäller till och med " + dateLabel(deal.valid_to) : String(deal.valid_until || "").trim();
-  const checked = deal.checked_on ? "Senast kontrollerat " + dateLabel(deal.checked_on) : "";
+  const expiry = validTo
+    ? "Gäller till och med " + dateLabel(validTo)
+    : String(deal.valid_until || "").trim();
+  const checked = checkedOn ? "Senast kontrollerat " + dateLabel(checkedOn) : "";
   const conditions = String(deal.conditions || "").replace(/LAST_CHANCE_IMAGE/g, "").trim();
   const description = [
     deal.name + " hos " + deal.store + " för " + price + ".",
     expiry ? expiry + "." : "",
     checked ? checked + "." : ""
   ].filter(Boolean).join(" ").slice(0, 300);
-  const retailerButton = retailer
+  const retailerButton = !expired && retailer
     ? '<a class="primary" href="' + html(retailer) + '" target="_blank" rel="' +
       (isAffiliate ? "sponsored nofollow noopener noreferrer" : "noopener noreferrer") + '">' +
       (isAffiliate ? "Till butiken" : "Till erbjudandet") + ' ↗</a>'
     : "";
+  const stateNotice = expired
+    ? '<p class="notice expired">Det här erbjudandet har gått ut. Se Fyndaren för aktuella erbjudanden.</p>'
+    : (!recentlyChecked
+      ? '<p class="notice">Det här erbjudandet är inte kontrollerat under de senaste ' + MAX_CHECK_AGE_DAYS + ' dagarna. Kontrollera alltid aktuellt pris och villkor hos butiken.</p>'
+      : "");
 
   return [
     '<!doctype html>',
@@ -115,7 +133,7 @@ function makePage(deal) {
     '<meta name="viewport" content="width=device-width, initial-scale=1">',
     '<title>' + html(deal.name) + ' hos ' + html(deal.store) + ' – ' + html(price) + ' | Fyndaren</title>',
     '<meta name="description" content="' + html(description) + '">',
-    '<meta name="robots" content="index,follow">',
+    '<meta name="robots" content="' + (indexable ? "index,follow" : "noindex,follow") + '">',
     '<link rel="canonical" href="' + html(canonical) + '">',
     '<meta name="theme-color" content="#090909">',
     '<meta property="og:type" content="website">',
@@ -138,7 +156,8 @@ function makePage(deal) {
     '.store{margin:20px 0 6px;color:#e6ca65;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}',
     'h1{margin:0 0 14px;font-size:clamp(24px,5vw,36px);line-height:1.2}',
     '.price{font-size:32px;font-weight:900;color:#f0d77e}.old-price{color:#bbb;font-size:14px;margin:5px 0 14px}',
-    '.info{margin:14px 0;padding:12px;border:1px solid rgba(255,255,255,.09);border-radius:12px;color:#ddd;line-height:1.55}',
+    '.info,.notice{margin:14px 0;padding:12px;border:1px solid rgba(255,255,255,.09);border-radius:12px;color:#ddd;line-height:1.55}',
+    '.notice{border-color:rgba(230,202,101,.32);background:rgba(212,175,55,.08)}.notice.expired{border-color:rgba(220,65,65,.45);background:rgba(220,65,65,.09)}',
     '.actions{display:grid;gap:10px;margin-top:20px}.primary,.secondary{display:block;padding:14px 16px;border-radius:12px;text-align:center;text-decoration:none;font-weight:800}',
     '.primary{background:linear-gradient(135deg,#d4af37,#e6ca65);color:#090909}.secondary{border:1px solid rgba(230,202,101,.38);color:#e6ca65;background:rgba(255,255,255,.03)}',
     'footer{color:#999;line-height:1.5;margin-top:22px;font-size:12px}button{font:inherit;cursor:pointer}',
@@ -157,9 +176,11 @@ function makePage(deal) {
     conditions ? '<p class="info"><b>Villkor:</b> ' + html(conditions) + '</p>' : "",
     expiry ? '<p class="info"><b>Giltighet:</b> ' + html(expiry) + '</p>' : "",
     checked ? '<p class="info">' + html(checked) + '</p>' : "",
+    stateNotice,
     '<div class="actions">',
     retailerButton,
-    '<a class="secondary" href="../../app.html?deal=' + encodeURIComponent(id) + '">Öppna fyndet i Fyndarens app</a>',
+    '<a class="secondary" href="' + (expired ? "/app.html" : "../../app.html?deal=" + encodeURIComponent(id)) + '">' +
+      (expired ? "Se aktuella erbjudanden i Fyndarens app" : "Öppna fyndet i Fyndarens app") + '</a>',
     '<button class="secondary" id="share" type="button">Dela detta fynd</button>',
     '</div>',
     '</article>',
@@ -177,7 +198,6 @@ function makePage(deal) {
   ].join("\n");
 }
 
-rmSync(OUT_DIR, { recursive: true, force: true });
 mkdirSync(OUT_DIR, { recursive: true });
 const sitemapUrls = [
   BASE_URL + "/",
@@ -185,13 +205,27 @@ const sitemapUrls = [
   BASE_URL + "/om-oss.html",
   BASE_URL + "/integritetspolicy.html"
 ];
+const knownSlugs = new Set();
 
-for (const deal of active) {
+for (const deal of deals) {
   const slug = slugify(deal.store + " " + deal.name) + "-" + Number(deal.id);
+  knownSlugs.add(slug);
   const directory = join(OUT_DIR, slug);
   mkdirSync(directory, { recursive: true });
   writeFileSync(join(directory, "index.html"), makePage(deal), "utf8");
-  sitemapUrls.push(BASE_URL + "/fynd/" + slug + "/");
+
+  const validTo = validDate(deal.valid_to);
+  const checkedOn = validDate(deal.checked_on);
+  const expired = !!validTo && validTo < today;
+  const recentlyChecked = !!checkedOn && checkedOn <= today && checkedOn >= freshnessCutoff;
+  if (!expired && recentlyChecked) sitemapUrls.push(BASE_URL + "/fynd/" + slug + "/");
+}
+
+// Remove pages only when the underlying deal itself has been deleted.
+for (const entry of readdirSync(OUT_DIR, { withFileTypes: true })) {
+  if (entry.isDirectory() && !knownSlugs.has(entry.name)) {
+    rmSync(join(OUT_DIR, entry.name), { recursive: true, force: true });
+  }
 }
 
 const sitemap = [
@@ -201,4 +235,4 @@ const sitemap = [
   '</urlset>'
 ].join("\n");
 writeFileSync(join(ROOT, "sitemap.xml"), sitemap, "utf8");
-console.log("Generated " + active.length + " public offer pages and sitemap.xml for " + today + ".");
+console.log("Generated " + deals.length + " offer pages; " + (sitemapUrls.length - 4) + " verified pages included in sitemap for " + today + ".");
