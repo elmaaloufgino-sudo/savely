@@ -36,6 +36,11 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 .mark{width:46px;height:46px;border-radius:0;background:none;object-fit:contain;filter:drop-shadow(0 0 8px rgba(212,175,55,.45))}
 
 .import-help{font-size:13px;color:var(--mute);line-height:1.5;margin:8px 0 12px}.import-row{display:flex;gap:10px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin:8px 0}.import-row input[type=checkbox]{width:20px;height:20px;flex:none;margin:2px 0}.import-row img{width:58px;height:58px;object-fit:contain;border-radius:9px;background:#fff;flex:none}.import-row .t{min-width:0}.import-row small{display:block;color:var(--mute);overflow-wrap:anywhere}.import-row .bad{color:var(--red)}.filepick{display:block;border:1px dashed var(--line);border-radius:14px;padding:14px;background:var(--bg)}.filepick input{height:auto;padding:8px 0;border:0;background:transparent}
+
+.price-checks{margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--bg)}
+.price-checks-title{font-size:14px;font-weight:800;color:var(--ink);line-height:1.4}
+.price-checks label{display:flex;align-items:flex-start;gap:10px;margin-top:12px;color:var(--ink);font-size:13px;line-height:1.45}
+.price-checks input[type=checkbox]{width:20px;height:20px;min-width:20px;flex:0 0 20px;margin:0;padding:0;accent-color:var(--green)}
 </style>
 </head>
 <body>
@@ -47,7 +52,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 const SUPABASE_URL='https://ebmqzrejrpijitxeggsl.supabase.co';
 const SUPABASE_KEY='sb_publishable_ep-vKQBf3tjvDC2h03BlYQ_hwUqrvY5';
 let sb=null;try{sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY)}catch(e){}
-let user=null,isAdmin=false,DATA=[],CODES=[],view='deals',editId=null,filter='',IMPORT_ROWS=[];
+let user=null,isAdmin=false,DATA=[],CODES=[],view='deals',editId=null,filter='',IMPORT_ROWS=[],IMPORT_CHECKS={campaign:false,reference:false,terms:false};
 const $=s=>document.querySelector(s);
 const todayISO=()=>{const t=new Date();return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0')};
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -64,6 +69,18 @@ function loginView(note){
 function denyView(){
   $('#app').innerHTML=`<div class="panel"><b>No access</b><p>You are logged in as ${esc(user.email)}, but this account is not an admin. Add it with the admin SQL, then reload this page.</p></div>`;
 }
+function priceChecksHTML(prefix){
+  const isImport=prefix==='i';
+  const checked=key=>isImport&&IMPORT_CHECKS[key]?'checked':'';
+  const data=key=>isImport?` data-import-check="${key}"`:'';
+  const heading=isImport?'Bekräfta kontrollerna för samtliga markerade produkter':'Obligatoriska kontroller före sparande';
+  return `<div class="price-checks" role="group" aria-label="${heading}">
+    <div class="price-checks-title">${heading}</div>
+    <label><input id="${prefix}_check_campaign" type="checkbox"${checked('campaign')}${data('campaign')}>Jag har kontrollerat att kampanjpriset stämmer med butikens aktuella erbjudande.</label>
+    <label><input id="${prefix}_check_reference" type="checkbox"${checked('reference')}${data('reference')}>Jag har verifierat jämförelsepriset mot butikens lägsta pris under de 30 dagarna före prissänkningen – inte ett rekommenderat pris.</label>
+    <label><input id="${prefix}_check_terms" type="checkbox"${checked('terms')}${data('terms')}>Jag har kontrollerat giltighetstid, medlemskrav, mängdkrav och andra begränsningar.</label>
+  </div>`;
+}
 function formHTML(d){
   d=d||{};
   const currentCategory=d.category==='Mat'?'Mat & Dryck':(d.category||'');
@@ -75,6 +92,7 @@ function formHTML(d){
   <label for="f_name">Product</label><input id="f_name" value="${esc(d.name)}" placeholder="Kycklingfilé 900 g">
   <div class="two"><div><label for="f_price">Kampanjpris (kr)</label><input id="f_price" inputmode="decimal" value="${esc(d.price)}"></div><div><label for="f_old">Tidigare lägsta pris (30 dagar, kr)</label><input id="f_old" inputmode="decimal" value="${esc(d.old_price)}"></div></div>
   <p class="import-help">Vid prissänkningar ska jämförelsepriset vara butikens lägsta pris under de 30 dagarna före prissänkningen – inte ett rekommenderat pris. Kontrollera butikens prisunderlag innan du publicerar. Se <a href="https://www.konsumentverket.se/marknadsratt-foretag/prissankningar-regler-for-foretag/" target="_blank" rel="noopener noreferrer">Konsumentverkets vägledning</a>.</p>
+  ${priceChecksHTML('f')}
   <div class="two"><div><label for="f_until">Valid until</label><input id="f_until" value="${esc(d.valid_until)}" placeholder="söndag eller 30/10"></div><div><label for="f_mem">Membership (optional)</label><input id="f_mem" value="${esc(d.membership)}" placeholder="ICA Stammis"></div></div>
   <div class="two"><div><label for="f_utext">Unit price text (optional)</label><input id="f_utext" value="${esc(d.unit_text)}" placeholder="87,78 kr/kg"></div><div><label for="f_uprice">Unit price number</label><input id="f_uprice" inputmode="decimal" value="${esc(d.unit_price)}" placeholder="87.78"></div></div>
   <label for="f_group">Compare group (optional, same name = compared together)</label><input id="f_group" value="${esc(d.compare_group)}" placeholder="Kyckling">
@@ -161,6 +179,7 @@ function collect(){
   if(!store||!name||!until)return {err:'Store, product and valid until are required.'};
   if(!price||price<=0||!old)return {err:'Enter a deal price and an original price.'};
   if(old<=price)return {err:'The original price must be higher than the deal price.'};
+  if(!$('#f_check_campaign').checked||!$('#f_check_reference').checked||!$('#f_check_terms').checked)return {err:'Bekräfta alla tre pris- och villkorskontrollerna innan du sparar.'};
   const w=store.split(/\s+/);
   const logo=v('f_logo').trim()||(w.length>1?w.map(x=>x[0]).join('').slice(0,3).toUpperCase():store.slice(0,3));
   const aff=v('f_aff').trim();
@@ -239,9 +258,10 @@ function renderImport(){
  const box=$('#importpreview');if(!box)return;
  const eligible=IMPORT_ROWS.filter(r=>!importIssue(r)).length;
  const selected=IMPORT_ROWS.filter(r=>r.selected&&!importIssue(r)).length;
- box.innerHTML=IMPORT_ROWS.length?`<h2>Preview products (${IMPORT_ROWS.length})</h2><p class="import-help">${eligible} eligible. Products with missing details, invalid prices, missing links or possible duplicates are blocked.</p><div class="two" style="margin:12px 0"><button class="btn ghost sm" type="button" data-selectall>Select all eligible</button><button class="btn ghost sm" type="button" data-clearselect>Clear selection</button></div>`+IMPORT_ROWS.map(r=>{const issue=importIssue(r);return `<div class="import-row"><input type="checkbox" data-import-select="${r.key}" ${r.selected&&!issue?'checked':''} ${issue?'disabled':''} aria-label="Select product">${r.image_url?`<img src="${esc(r.image_url)}" alt="" onerror="this.style.display='none'">`:''}<div class="t"><b>${esc(r.name||'Unnamed product')}</b><small>${esc(r.store)} · ${r.price?kr(r.price):'No price'} ${r.old_price?'(was '+kr(r.old_price)+')':''}</small><small class="${issue?'bad':''}">${esc(issue||'Ready to add')}</small><small>${r.affiliate_url?'Affiliate link found':'No affiliate link'} · ${r.shop_url?'Product link found':'No product link'}</small></div></div>`}).join('')+`<div class="panel"><b>${selected} selected</b><button class="btn" type="button" data-publish-selected ${selected?'':'disabled'}>Add selected products</button><div class="msg" id="publishmsg" role="status"></div></div>`:`<p class="import-help">No products loaded yet.</p>`;
+ box.innerHTML=IMPORT_ROWS.length?`<h2>Preview products (${IMPORT_ROWS.length})</h2><p class="import-help">${eligible} eligible. Products with missing details, invalid prices, missing links or possible duplicates are blocked.</p><div class="two" style="margin:12px 0"><button class="btn ghost sm" type="button" data-selectall>Select all eligible</button><button class="btn ghost sm" type="button" data-clearselect>Clear selection</button></div>`+IMPORT_ROWS.map(r=>{const issue=importIssue(r);return `<div class="import-row"><input type="checkbox" data-import-select="${r.key}" ${r.selected&&!issue?'checked':''} ${issue?'disabled':''} aria-label="Select product">${r.image_url?`<img src="${esc(r.image_url)}" alt="" onerror="this.style.display='none'">`:''}<div class="t"><b>${esc(r.name||'Unnamed product')}</b><small>${esc(r.store)} · ${r.price?kr(r.price):'No price'} ${r.old_price?'(was '+kr(r.old_price)+')':''}</small><small class="${issue?'bad':''}">${esc(issue||'Ready to add')}</small><small>${r.affiliate_url?'Affiliate link found':'No affiliate link'} · ${r.shop_url?'Product link found':'No product link'}</small></div></div>`}).join('')+`<div class="panel"><b>${selected} selected</b>${priceChecksHTML('i')}<p class="import-help">Alla tre kontroller måste vara markerade för samtliga valda produkter innan publicering aktiveras.</p><button class="btn" type="button" data-publish-selected ${selected&&Object.values(IMPORT_CHECKS).every(Boolean)?'':'disabled'}>Publicera valda produkter</button><div class="msg" id="publishmsg" role="status"></div></div>`:`<p class="import-help">No products loaded yet.</p>`;
 }
 async function publishSelected(){
+ if(!Object.values(IMPORT_CHECKS).every(Boolean))return toast('Bekräfta alla tre kontrollerna först');
  const rows=IMPORT_ROWS.filter(r=>r.selected&&!importIssue(r));
  if(!rows.length)return toast('Select eligible products first');
  const keys=new Set();
@@ -253,15 +273,15 @@ async function publishSelected(){
  const btn=$('[data-publish-selected]');if(btn){btn.disabled=true;btn.textContent='Saving…'}
  const result=await sb.from('deals').insert(payload).select();
  if(result.error||!result.data||result.data.length!==payload.length){const m=$('#publishmsg');if(m)m.textContent='Could not confirm the save. Check the deals list before retrying.';if(btn){btn.disabled=false;btn.textContent='Add selected products'}return}
- IMPORT_ROWS=IMPORT_ROWS.filter(r=>!r.selected);await loadDeals();renderImport();toast(rows.length+' product(s) published');
+ IMPORT_ROWS=IMPORT_ROWS.filter(r=>!r.selected);IMPORT_CHECKS={campaign:false,reference:false,terms:false};await loadDeals();renderImport();toast(rows.length+' product(s) published');
 }
 async function readFeed(file){
  if(!file)return;setMsg('Reading file…');
- try{const txt=await file.text();const objects=/\.xml$/i.test(file.name)||txt.trim().startsWith('<')?parseXML(txt):parseCSV(txt);IMPORT_ROWS=objects.map(normalizeImport);const seen=new Set();IMPORT_ROWS.forEach(r=>{const k=(r.store+'|'+r.name).toLowerCase();if(seen.has(k))r.duplicate=true;seen.add(k)});renderImport();setMsg(IMPORT_ROWS.length?'Feed loaded. Review and select products below.':'No product rows found.');}
+ try{const txt=await file.text();const objects=/\.xml$/i.test(file.name)||txt.trim().startsWith('<')?parseXML(txt):parseCSV(txt);IMPORT_CHECKS={campaign:false,reference:false,terms:false};IMPORT_ROWS=objects.map(normalizeImport);const seen=new Set();IMPORT_ROWS.forEach(r=>{const k=(r.store+'|'+r.name).toLowerCase();if(seen.has(k))r.duplicate=true;seen.add(k)});renderImport();setMsg(IMPORT_ROWS.length?'Feed loaded. Review and select products below.':'No product rows found.');}
  catch(e){IMPORT_ROWS=[];renderImport();setMsg(e.message||'Could not read this file.')}
 }
 
-document.addEventListener('change',e=>{if(e.target.id==='feedfile')readFeed(e.target.files&&e.target.files[0]);if(e.target.matches('[data-import-select]')){const r=IMPORT_ROWS.find(x=>x.key===Number(e.target.dataset.importSelect));if(r){r.selected=e.target.checked;renderImport()}}});
+document.addEventListener('change',e=>{if(e.target.id==='feedfile')readFeed(e.target.files&&e.target.files[0]);if(e.target.matches('[data-import-select]')){const r=IMPORT_ROWS.find(x=>x.key===Number(e.target.dataset.importSelect));if(r){r.selected=e.target.checked;IMPORT_CHECKS={campaign:false,reference:false,terms:false};renderImport()}}if(e.target.matches('[data-import-check]')){IMPORT_CHECKS[e.target.dataset.importCheck]=e.target.checked;renderImport()}});
 document.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;const d=b.dataset;
   if(d.login!==undefined)doLogin();
@@ -273,8 +293,8 @@ document.addEventListener('click',e=>{
   else if(d.view){view=d.view;editId=null;adminView()}
   else if(d.csave!==undefined)saveCode()
   else if(d.cdel){delCode(+d.cdel)}
-  else if(d.selectall!==undefined){IMPORT_ROWS.forEach(r=>r.selected=!importIssue(r));renderImport()}
-  else if(d.clearselect!==undefined){IMPORT_ROWS.forEach(r=>r.selected=false);renderImport()}
+  else if(d.selectall!==undefined){IMPORT_ROWS.forEach(r=>r.selected=!importIssue(r));IMPORT_CHECKS={campaign:false,reference:false,terms:false};renderImport()}
+  else if(d.clearselect!==undefined){IMPORT_ROWS.forEach(r=>r.selected=false);IMPORT_CHECKS={campaign:false,reference:false,terms:false};renderImport()}
   else if(d.publishSelected!==undefined){publishSelected()}
   else if(b.id==='out'){sb.auth.signOut()}
 });
