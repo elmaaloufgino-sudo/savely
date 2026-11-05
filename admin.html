@@ -281,7 +281,7 @@ async function readFeed(file){
  catch(e){IMPORT_ROWS=[];renderImport();setMsg(e.message||'Could not read this file.')}
 }
 
-document.addEventListener('change',e=>{if(e.target.id==='feedfile')readFeed(e.target.files&&e.target.files[0]);if(e.target.matches('[data-import-select]')){const r=IMPORT_ROWS.find(x=>x.key===Number(e.target.dataset.importSelect));if(r){r.selected=e.target.checked;renderImport()}}if(e.target.matches('[data-import-check]')){IMPORT_CHECKS[e.target.dataset.importCheck]=e.target.checked;renderImport()}});
+document.addEventListener('change',e=>{if(e.target.id==='feedfile')readFeed(e.target.files&&e.target.files[0]);if(e.target.matches('[data-import-select]')){const r=IMPORT_ROWS.find(x=>x.key===Number(e.target.dataset.importSelect));if(r){r.selected=e.target.checked;IMPORT_CHECKS={campaign:false,reference:false,terms:false};renderImport()}}if(e.target.matches('[data-import-check]')){IMPORT_CHECKS[e.target.dataset.importCheck]=e.target.checked;renderImport()}});
 document.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;const d=b.dataset;
   if(d.login!==undefined)doLogin();
@@ -293,8 +293,8 @@ document.addEventListener('click',e=>{
   else if(d.view){view=d.view;editId=null;adminView()}
   else if(d.csave!==undefined)saveCode()
   else if(d.cdel){delCode(+d.cdel)}
-  else if(d.selectall!==undefined){IMPORT_ROWS.forEach(r=>r.selected=!importIssue(r));renderImport()}
-  else if(d.clearselect!==undefined){IMPORT_ROWS.forEach(r=>r.selected=false);renderImport()}
+  else if(d.selectall!==undefined){IMPORT_ROWS.forEach(r=>r.selected=!importIssue(r));IMPORT_CHECKS={campaign:false,reference:false,terms:false};renderImport()}
+  else if(d.clearselect!==undefined){IMPORT_ROWS.forEach(r=>r.selected=false);IMPORT_CHECKS={campaign:false,reference:false,terms:false};renderImport()}
   else if(d.publishSelected!==undefined){publishSelected()}
   else if(b.id==='out'){sb.auth.signOut()}
 });
