@@ -1391,14 +1391,47 @@ function productImage(o){
   return verifiedImages[o.id]||o.img||null;
 }
 
+function productImageForWidth(source,width){
+  if(!source)return null;
+  let url;
+  try{url=new URL(source)}catch(e){return source}
+  const host=url.hostname.toLowerCase();
+  if(host==='assets.ellosgroup.com'&&url.pathname.startsWith('/i/ellos/')){
+    const imageName=url.searchParams.get('n')||url.pathname.split('/').pop();
+    if(!imageName||imageName==='b')return source;
+    return 'https://assets.ellosgroup.com/i/ellos/b?$eg$&$em$&$ep$&$ed$&n='+encodeURIComponent(imageName)+'&mw='+Math.round(width)+'&fmt=webp';
+  }
+  if(host.endsWith('.imgix.net')){
+    url.searchParams.set('auto','format,compress');
+    url.searchParams.set('w',String(Math.round(width)));
+    url.searchParams.set('q','80');
+    return url.toString();
+  }
+  return source;
+}
+function supportsResponsiveProductImage(source){
+  try{
+    const host=new URL(source).hostname.toLowerCase();
+    return host==='assets.ellosgroup.com'||host.endsWith('.imgix.net');
+  }catch(e){return false}
+}
+function productImageSrcSet(source,widths){
+  if(!source||!supportsResponsiveProductImage(source))return '';
+  return widths.map(width=>productImageForWidth(source,width)+' '+width+'w').join(', ');
+}
 function productVisual(o,prioritize=false){
   const img=productImage(o);
   if(!img)return storeLogo(o);
-  return `<img class="product-shot product-shot-${o.id}" src="${esc(img)}" alt="${esc(o.n)}" loading="${prioritize?'eager':'lazy'}" decoding="async" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span class="logo-fallback" style="display:none">${storeLogo(o)}</span>`;
+  const cardSrc=productImageForWidth(img,480);
+  const srcSet=productImageSrcSet(img,[320,480,640,800]);
+  const responsive=srcSet?' srcset="'+esc(srcSet)+'" sizes="(max-width: 520px) 50vw, 240px"':'';
+  const fallback=cardSrc!==img?' data-original-src="'+esc(img)+'"':'';
+  const onerror="if(this.dataset.originalSrc){const fallback=this.dataset.originalSrc;this.dataset.originalSrc='';this.removeAttribute('srcset');this.removeAttribute('sizes');this.src=fallback;return;}this.style.display='none';this.nextElementSibling.style.display='flex'";
+  return '<img class="product-shot product-shot-'+o.id+'" src="'+esc(cardSrc)+'"'+responsive+fallback+' alt="'+esc(o.n)+'" loading="'+(prioritize?'eager':'lazy')+'" fetchpriority="'+(prioritize?'high':'low')+'" decoding="async" onerror="'+onerror+'"><span class="logo-fallback" style="display:none">'+storeLogo(o)+'</span>';
 }
 
 function offerBadge(o){const t=[o.cond||'',o.n||''].join(' ');const m=t.match(/(\\d+)\\s*för\\s*(\\d+(?:[,.]\\d{1,2})?)\\s*kr/i);return m?m[1]+' för '+m[2].replace('.',',')+' kr':null;}
-function card(o,index=99){const f=favs.has(o.id);const sv=Math.round((o.o-o.p)*100)/100;return `<article class="card" data-product="${o.id}" tabindex="0" role="button" aria-label="Visa detaljer för ${esc(o.n)}"><div class="tile" style="--tc:${colr(o.col)}"><span class="badge">${o.lc?'Last chance':(offerBadge(o)|| (o.s==='Kappahl'&&/2 för 299/i.test(o.n)?'2 för 299:-':'-'+pct(o)+'%'))}</span><button type="button" class="fav ${f?'on':''} ${o.id===popId?'pop':''}" data-fav="${o.id}" onclick="event.preventDefault();event.stopPropagation();toggleFav(Number(this.dataset.fav));return false" aria-pressed="${f}" aria-label="${f?'Ta bort från sparlistan':'Spara i sparlistan'}">${heart}</button>${productVisual(o,index<4)}<span class="ptag">${kr(o.p)}</span></div><div class="info"><div class="store">${esc(o.s)}<span class="cat"> · ${esc(o.c)}</span></div><h3>${esc(o.n)}</h3><div class="price"><s>${kr(o.o)}</s><span class="sv">Spara ${kr(sv)}</span></div>${o.u?`<div class="mute">Jmf: ${esc(o.u)}</div>`:''}${o.m?`<span class="mem">Kräver ${esc(o.m)}</span>`:''}${o.cond?`<div class="cond">${esc(o.cond)}</div>`:''}${o.e?`<div class="exp">${clock} Gäller t.o.m. ${esc(o.e)}</div>`:''}${o.k?`<div class="chk">Kontrollerad ${dm(o.k)}</div>`:''}${o.a?`<div class="go"><a href="${esc(o.a)}" target="_blank" rel="sponsored nofollow noopener noreferrer">Till erbjudandet ↗</a><span class="adl">Annonslänk</span></div>`:(o.w?`<div class="go"><a class="pl" href="${esc(o.w)}" target="_blank" rel="noopener noreferrer">Till erbjudandet ↗</a></div>`:`<div class="go"><button type="button" class="offer-cta" data-product-cta="${o.id}" aria-label="Visa erbjudandet för ${esc(o.n)}">Visa erbjudandet ↗</button></div>`)}</div></article>`}
+function card(o,index=99){const f=favs.has(o.id);const sv=Math.round((o.o-o.p)*100)/100;return `<article class="card" data-product="${o.id}" tabindex="0" role="button" aria-label="Visa detaljer för ${esc(o.n)}"><div class="tile" style="--tc:${colr(o.col)}"><span class="badge">${o.lc?'Last chance':(offerBadge(o)|| (o.s==='Kappahl'&&/2 för 299/i.test(o.n)?'2 för 299:-':'-'+pct(o)+'%'))}</span><button type="button" class="fav ${f?'on':''} ${o.id===popId?'pop':''}" data-fav="${o.id}" onclick="event.preventDefault();event.stopPropagation();toggleFav(Number(this.dataset.fav));return false" aria-pressed="${f}" aria-label="${f?'Ta bort från sparlistan':'Spara i sparlistan'}">${heart}</button>${productVisual(o,index===0)}<span class="ptag">${kr(o.p)}</span></div><div class="info"><div class="store">${esc(o.s)}<span class="cat"> · ${esc(o.c)}</span></div><h3>${esc(o.n)}</h3><div class="price"><s>${kr(o.o)}</s><span class="sv">Spara ${kr(sv)}</span></div>${o.u?`<div class="mute">Jmf: ${esc(o.u)}</div>`:''}${o.m?`<span class="mem">Kräver ${esc(o.m)}</span>`:''}${o.cond?`<div class="cond">${esc(o.cond)}</div>`:''}${o.e?`<div class="exp">${clock} Gäller t.o.m. ${esc(o.e)}</div>`:''}${o.k?`<div class="chk">Kontrollerad ${dm(o.k)}</div>`:''}${o.a?`<div class="go"><a href="${esc(o.a)}" target="_blank" rel="sponsored nofollow noopener noreferrer">Till erbjudandet ↗</a><span class="adl">Annonslänk</span></div>`:(o.w?`<div class="go"><a class="pl" href="${esc(o.w)}" target="_blank" rel="noopener noreferrer">Till erbjudandet ↗</a></div>`:`<div class="go"><button type="button" class="offer-cta" data-product-cta="${o.id}" aria-label="Visa erbjudandet för ${esc(o.n)}">Visa erbjudandet ↗</button></div>`)}</div></article>`}
 
 function openProduct(id,keepCarousel=false){
   if(!keepCarousel){activeProductIds=[...document.querySelectorAll('.card[data-product]')].map(el=>Number(el.dataset.product)).filter((value,index,all)=>Number.isFinite(value)&&all.indexOf(value)===index);if(!activeProductIds.includes(Number(id)))activeProductIds=DATA.map(item=>item.id)}
@@ -1408,7 +1441,11 @@ function openProduct(id,keepCarousel=false){
   if(!o)return;
   const sv=Math.round((o.o-o.p)*100)/100;
   const img=productImage(o);
-  const image=img?'<img class="product-detail-shot product-detail-shot-'+o.id+'" src="'+esc(img)+'" alt="'+esc(o.n)+'" loading="eager" decoding="async" onerror="this.style.display=\'none\'">':storeLogo(o);
+  const detailSrc=productImageForWidth(img,960);
+  const detailSrcSet=productImageSrcSet(img,[640,960,1200]);
+  const detailResponsive=detailSrcSet?' srcset="'+esc(detailSrcSet)+'" sizes="(max-width: 480px) 100vw, 480px"':'';
+  const detailFallback=detailSrc!==img?' data-original-src="'+esc(img)+'"':'';
+  const image=img?'<img class="product-detail-shot product-detail-shot-'+o.id+'" src="'+esc(detailSrc)+'"'+detailResponsive+detailFallback+' alt="'+esc(o.n)+'" loading="eager" fetchpriority="high" decoding="async" onerror="if(this.dataset.originalSrc){const fallback=this.dataset.originalSrc;this.dataset.originalSrc=\'\';this.removeAttribute(\'srcset\');this.removeAttribute(\'sizes\');this.src=fallback;return;}this.style.display=\'none\'">':storeLogo(o);
   const details=[
     o.u?'<div class="product-detail"><b>Jämförpris</b>'+esc(o.u)+'</div>':'',
     o.m?'<div class="product-detail"><b>Medlemskap</b>Kräver '+esc(o.m)+'</div>':'',
