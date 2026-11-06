@@ -164,7 +164,7 @@ nav button[aria-current="page"]{color:var(--gink);filter:drop-shadow(0 0 8px rgb
 nav button:active{transform:scale(.94)}
 .toast{background:#1a1608;border:1px solid var(--green);color:var(--gink)}
 .demo{border:1px solid rgba(212,175,55,.3)}
-.enter{animation:fade .4s both}.enter .card,.enter .row{animation:up .55s both}
+.enter{animation:fade .4s both}.enter .card,.enter .row{animation:up .55s both;animation-delay:660ms}
 .skel{height:108px;border:0;background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.11),rgba(255,255,255,.04));background-size:200% 100%;animation:shim 1.4s linear infinite}
 @keyframes glow{0%,100%{opacity:.65}50%{opacity:1}}
 @keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
@@ -1527,7 +1527,7 @@ function searchKey(value){
 function offers(){
   const t=searchKey(q);
   const list=DATA.filter(o=>(cat==='Alla'||o.c===cat)&&(!hideMem||!o.m)&&(!t||(o.searchText||searchKey([o.s,o.n,o.c,o.u,o.cond].join(' '))).includes(t)));
-  const sorted=list.slice().sort((a,b)=>{
+  const sorted=sortMode==='recommended'?list:list.slice().sort((a,b)=>{
     if(sortMode==='cheapest')return (Number(a.p)||0)-(Number(b.p)||0);
     if(sortMode==='expensive')return (Number(b.p)||0)-(Number(a.p)||0);
     if(sortMode==='newest')return String(b.k||'').localeCompare(String(a.k||''))||(Number(b.id)||0)-(Number(a.id)||0);
@@ -1641,7 +1641,7 @@ function rewardAdminPanel(){
 function render(){
   const mainEl=$('#main');mainEl.innerHTML={offers,compare,codes,list,rewards,adminRewards:rewardAdminPanel}[tab]();
   mainEl.classList.toggle('enter',anim);
-  if(anim){mainEl.querySelectorAll('.card,.row').forEach((c,i)=>c.style.animationDelay=Math.min(i,12)*55+'ms');const sb=mainEl.querySelector('.stats b');if(sb&&DATA.length)countUp(sb,DATA.length)}
+  if(anim){mainEl.querySelectorAll('.card:nth-child(-n+13),.row:nth-child(-n+13)').forEach((c,i)=>c.style.animationDelay=i*55+'ms');const sb=mainEl.querySelector('.stats b');if(sb&&DATA.length)countUp(sb,DATA.length)}
   anim=false;
   $('#cnt').textContent=favs.size;const nc=$('#navCnt');nc.textContent=favs.size;nc.hidden=!favs.size;
   document.querySelectorAll('nav button').forEach(b=>{if(b.dataset.tab===tab)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
