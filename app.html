@@ -1410,14 +1410,6 @@ function productImageForWidth(source,width){
   if(host==='assets.ellosgroup.com'&&url.pathname.startsWith('/i/ellos/')){
     const imageName=url.searchParams.get('n')||url.pathname.split('/').pop();
     if(!imageName||imageName==='b')return source;
-    return 'https://assets.ellosgroup.com/i/ellos/b?$egfunction productImageForWidth(source,width){
-  if(!source)return null;
-  let url;
-  try{url=new URL(source)}catch(e){return source}
-  const host=url.hostname.toLowerCase();
-  if(host==='assets.ellosgroup.com'&&url.pathname.startsWith('/i/ellos/')){
-    const imageName=url.searchParams.get('n')||url.pathname.split('/').pop();
-    if(!imageName||imageName==='b')return source;
     return 'https://assets.ellosgroup.com/i/ellos/b?$eg$&$em$&$ep$&$ed$&n='+encodeURIComponent(imageName)+'&mw='+Math.round(width)+'&fmt=webp';
   }
   if(host.endsWith('.imgix.net')){
@@ -1428,132 +1420,35 @@ function productImageForWidth(source,width){
   }
   return source;
 }
-function supportsResponsiveProductImage(source){
-  try{
-    const host=new URL(source).hostname.toLowerCase();
-    return host==='assets.ellosgroup.com'||host.endsWith('.imgix.net');
-  }catch(e){return false}
-}
-function productImageSrcSet(source,widths){
-  if(!source||!supportsResponsiveProductImage(source))return '';
-  return widths.map(width=>productImageForWidth(source,width)+' '+width+'w').join(', ');
-}$emfunction productImageForWidth(source,width){
-  if(!source)return null;
-  let url;
-  try{url=new URL(source)}catch(e){return source}
-  const host=url.hostname.toLowerCase();
-  if(host==='assets.ellosgroup.com'&&url.pathname.startsWith('/i/ellos/')){
-    const imageName=url.searchParams.get('n')||url.pathname.split('/').pop();
-    if(!imageName||imageName==='b')return source;
-    return 'https://assets.ellosgroup.com/i/ellos/b?$eg$&$em$&$ep$&$ed$&n='+encodeURIComponent(imageName)+'&mw='+Math.round(width)+'&fmt=webp';
-  }
-  if(host.endsWith('.imgix.net')){
-    url.searchParams.set('auto','format,compress');
-    url.searchParams.set('w',String(Math.round(width)));
-    url.searchParams.set('q','80');
-    return url.toString();
-  }
-  return source;
-}
-function supportsResponsiveProductImage(source){
-  try{
-    const host=new URL(source).hostname.toLowerCase();
-    return host==='assets.ellosgroup.com'||host.endsWith('.imgix.net');
-  }catch(e){return false}
-}
-function productImageSrcSet(source,widths){
-  if(!source||!supportsResponsiveProductImage(source))return '';
-  return widths.map(width=>productImageForWidth(source,width)+' '+width+'w').join(', ');
-}$epfunction productImageForWidth(source,width){
-  if(!source)return null;
-  let url;
-  try{url=new URL(source)}catch(e){return source}
-  const host=url.hostname.toLowerCase();
-  if(host==='assets.ellosgroup.com'&&url.pathname.startsWith('/i/ellos/')){
-    const imageName=url.searchParams.get('n')||url.pathname.split('/').pop();
-    if(!imageName||imageName==='b')return source;
-    return 'https://assets.ellosgroup.com/i/ellos/b?$eg$&$em$&$ep$&$ed$&n='+encodeURIComponent(imageName)+'&mw='+Math.round(width)+'&fmt=webp';
-  }
-  if(host.endsWith('.imgix.net')){
-    url.searchParams.set('auto','format,compress');
-    url.searchParams.set('w',String(Math.round(width)));
-    url.searchParams.set('q','80');
-    return url.toString();
-  }
-  return source;
-}
-function supportsResponsiveProductImage(source){
-  try{
-    const host=new URL(source).hostname.toLowerCase();
-    return host==='assets.ellosgroup.com'||host.endsWith('.imgix.net');
-  }catch(e){return false}
-}
-function productImageSrcSet(source,widths){
-  if(!source||!supportsResponsiveProductImage(source))return '';
-  return widths.map(width=>productImageForWidth(source,width)+' '+width+'w').join(', ');
-}$edfunction productImageForWidth(source,width){
-  if(!source)return null;
-  let url;
-  try{url=new URL(source)}catch(e){return source}
-  const host=url.hostname.toLowerCase();
-  if(host==='assets.ellosgroup.com'&&url.pathname.startsWith('/i/ellos/')){
-    const imageName=url.searchParams.get('n')||url.pathname.split('/').pop();
-    if(!imageName||imageName==='b')return source;
-    return 'https://assets.ellosgroup.com/i/ellos/b?$eg$&$em$&$ep$&$ed$&n='+encodeURIComponent(imageName)+'&mw='+Math.round(width)+'&fmt=webp';
-  }
-  if(host.endsWith('.imgix.net')){
-    url.searchParams.set('auto','format,compress');
-    url.searchParams.set('w',String(Math.round(width)));
-    url.searchParams.set('q','80');
-    return url.toString();
-  }
-  return source;
-}
-function supportsResponsiveProductImage(source){
-  try{
-    const host=new URL(source).hostname.toLowerCase();
-    return host==='assets.ellosgroup.com'||host.endsWith('.imgix.net');
-  }catch(e){return false}
-}
-function productImageSrcSet(source,widths){
-  if(!source||!supportsResponsiveProductImage(source))return '';
-  return widths.map(width=>productImageForWidth(source,width)+' '+width+'w').join(', ');
-}n='+encodeURIComponent(imageName)+'&mw='+Math.round(width)+'&fmt=webp';
-  }
-  if(host.endsWith('.imgix.net')){
-    url.searchParams.set('auto','format,compress');
-    url.searchParams.set('w',String(Math.round(width)));
-    url.searchParams.set('q','80');
-    return url.toString();
-  }
-  return source;
-}
-function supportsResponsiveProductImage(source){
+function supportsPowerResponsiveProductImage(source){
   try{
     const url=new URL(source);
-    const host=url.hostname.toLowerCase();
-    return (host==='media.power-cdn.net'&&/_\d+x\1_t_g\.webp$/i.test(url.pathname.match(/_(\d+)x\d+_t_g\.webp$/i)?.[0]||''))||host==='assets.ellosgroup.com'||host.endsWith('.imgix.net');
+    return url.hostname.toLowerCase()==='media.power-cdn.net'&&/_(\d+)x\1_t_g\.webp$/i.test(url.pathname);
+  }catch(e){return false}
+}
+function supportsResponsiveProductImage(source){
+  try{
+    const host=new URL(source).hostname.toLowerCase();
+    return supportsPowerResponsiveProductImage(source)||host==='assets.ellosgroup.com'||host.endsWith('.imgix.net');
   }catch(e){return false}
 }
 function productImageSrcSet(source,widths){
   if(!source||!supportsResponsiveProductImage(source))return '';
   let responsiveWidths=widths;
-  try{
+  if(supportsPowerResponsiveProductImage(source)){
     const url=new URL(source);
-    if(url.hostname.toLowerCase()==='media.power-cdn.net'){
-      const sizeMatch=url.pathname.match(/_(\d+)x\1_t_g\.webp$/i);
-      if(sizeMatch){
-        const originalWidth=Number(sizeMatch[1]);
-        responsiveWidths=[...new Set([...widths.map(width=>Math.min(Math.round(width),originalWidth)),originalWidth])].sort((a,b)=>a-b);
-      }
+    const sizeMatch=url.pathname.match(/_(\d+)x\1_t_g\.webp$/i);
+    if(sizeMatch){
+      const originalWidth=Number(sizeMatch[1]);
+      responsiveWidths=[...new Set([...widths.map(width=>Math.min(Math.round(width),originalWidth)),originalWidth])].sort((a,b)=>a-b);
     }
-  }catch(e){}
+  }
   return responsiveWidths.map(width=>productImageForWidth(source,width)+' '+width+'w').join(', ');
 }
 function productVisual(o,prioritize=false){
   const img=productImage(o);
   if(!img)return storeLogo(o);
-  const isPowerImage=/^https:\/\/media\.power-cdn\.net\/.*_\d+x\d+_t_g\.webp(?:\?.*)?$/i.test(img);
+  const isPowerImage=supportsPowerResponsiveProductImage(img);
   const cardSrc=productImageForWidth(img,isPowerImage?450:480);
   const srcSet=productImageSrcSet(img,isPowerImage?[150,300,450,600]:[320,480,640,800]);
   const responsive=srcSet?' srcset="'+esc(srcSet)+'" sizes="(max-width: 520px) 50vw, 240px"':'';
