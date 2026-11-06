@@ -1427,7 +1427,7 @@ function productVisual(o,prioritize=false){
   const responsive=srcSet?' srcset="'+esc(srcSet)+'" sizes="(max-width: 520px) 50vw, 240px"':'';
   const fallback=cardSrc!==img?' data-original-src="'+esc(img)+'"':'';
   const onerror="if(this.dataset.originalSrc){const fallback=this.dataset.originalSrc;this.dataset.originalSrc='';this.removeAttribute('srcset');this.removeAttribute('sizes');this.src=fallback;return;}this.style.display='none';this.nextElementSibling.style.display='flex'";
-  return \`<img class="product-shot product-shot-\${o.id}" src="\${esc(cardSrc)}"\${responsive}\${fallback} alt="\${esc(o.n)}" loading="\${prioritize?'eager':'lazy'}" fetchpriority="\${prioritize?'high':'low'}" decoding="async" onerror="\${onerror}"><span class="logo-fallback" style="display:none">\${storeLogo(o)}</span>\`;
+  return '<img class="product-shot product-shot-'+o.id+'" src="'+esc(cardSrc)+'"'+responsive+fallback+' alt="'+esc(o.n)+'" loading="'+(prioritize?'eager':'lazy')+'" fetchpriority="'+(prioritize?'high':'low')+'" decoding="async" onerror="'+onerror+'"><span class="logo-fallback" style="display:none">'+storeLogo(o)+'</span>';
 }
 
 function offerBadge(o){const t=[o.cond||'',o.n||''].join(' ');const m=t.match(/(\\d+)\\s*för\\s*(\\d+(?:[,.]\\d{1,2})?)\\s*kr/i);return m?m[1]+' för '+m[2].replace('.',',')+' kr':null;}
@@ -1445,7 +1445,7 @@ function openProduct(id,keepCarousel=false){
   const detailSrcSet=productImageSrcSet(img,[640,960,1200]);
   const detailResponsive=detailSrcSet?' srcset="'+esc(detailSrcSet)+'" sizes="(max-width: 480px) 100vw, 480px"':'';
   const detailFallback=detailSrc!==img?' data-original-src="'+esc(img)+'"':'';
-  const image=img?'<img class="product-detail-shot product-detail-shot-'+o.id+'" src="'+esc(detailSrc)+'"'+detailResponsive+detailFallback+' alt="'+esc(o.n)+'" loading="eager" fetchpriority="high" decoding="async" onerror="if(this.dataset.originalSrc){const fallback=this.dataset.originalSrc;this.dataset.originalSrc=\\'\\';this.removeAttribute(\\'srcset\\');this.removeAttribute(\\'sizes\\');this.src=fallback;return;}this.style.display=\\'none\\'">':storeLogo(o);
+  const image=img?'<img class="product-detail-shot product-detail-shot-'+o.id+'" src="'+esc(detailSrc)+'"'+detailResponsive+detailFallback+' alt="'+esc(o.n)+'" loading="eager" fetchpriority="high" decoding="async" onerror="if(this.dataset.originalSrc){const fallback=this.dataset.originalSrc;this.dataset.originalSrc=\'\';this.removeAttribute(\'srcset\');this.removeAttribute(\'sizes\');this.src=fallback;return;}this.style.display=\'none\'">':storeLogo(o);
   const details=[
     o.u?'<div class="product-detail"><b>Jämförpris</b>'+esc(o.u)+'</div>':'',
     o.m?'<div class="product-detail"><b>Medlemskap</b>Kräver '+esc(o.m)+'</div>':'',
