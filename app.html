@@ -469,7 +469,10 @@ header{padding-top:max(16px,env(safe-area-inset-top));padding-bottom:16px;border
 .search{gap:12px}
 .search:focus-within{border-color:rgba(230,202,101,.62);box-shadow:0 0 0 3px rgba(230,202,101,.09)}
 .search input::placeholder{color:rgba(255,255,255,.48)}
-footer{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:8px 12px;padding:18px 20px calc(28px + env(safe-area-inset-bottom));line-height:1.5}
+footer{display:grid;justify-items:center;align-content:center;gap:8px;min-height:96px;padding:18px 20px calc(28px + env(safe-area-inset-bottom));line-height:20px}
+.footer-links{display:flex;align-items:center;gap:12px;white-space:nowrap;line-height:20px}
+.footer-links span{color:var(--mute)}
+footer a{display:inline-block;line-height:20px}
 footer a{text-decoration:none;text-underline-offset:3px}
 footer a:hover{text-decoration:underline}
 @media(min-width:768px){
@@ -1158,7 +1161,7 @@ button:focus-visible,input:focus-visible,a:focus-visible{
   <label class="search"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="q" type="search" placeholder="Sök butik eller produkt…" aria-label="Sök butik eller produkt"></label>
 </div>
 <main id="main"></main>
-<footer><a href="integritetspolicy.html">Integritetspolicy</a> · <a href="om-oss.html">Om Fyndaren</a> · hej@fyndaren.se</footer>
+<footer><div class="footer-links"><a href="integritetspolicy.html">Integritetspolicy</a><span aria-hidden="true">·</span><a href="om-oss.html">Om Fyndaren</a></div><a class="footer-email" href="mailto:hej@fyndaren.se">hej@fyndaren.se</a></footer>
 <nav aria-label="Huvudmeny">
   <button data-tab="offers"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8v10h-6v-6H9v6H3z"/></svg>Erbjudanden</button>
   <button data-tab="compare"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6l2 2 3-3M4 14l2 2 3-3M13 7h8M13 15h8"/></svg>Jämför</button>
