@@ -1393,20 +1393,32 @@ function productImage(o){
   return verifiedImages[o.id]||o.img||null;
 }
 
+const APOTEA_CARD_IMAGE_FILES=new Set([
+  'mittval-myfocus-100-tabletter-0.jpg',
+  'mittval-kvinna-100-tabletter-1-6.jpg',
+  'mittval-sport-100-tabletter-1-6.jpg'
+]);
+function supportsApoteaCardImage(source){
+  try{
+    const url=new URL(source);
+    return url.hostname.toLowerCase()==='media.apotea.se'
+      &&url.pathname.startsWith('/product-images/XL/')
+      &&APOTEA_CARD_IMAGE_FILES.has(url.pathname.split('/').pop());
+  }catch(e){return false}
+}
+function apoteaCardImage(source){
+  try{
+    if(!supportsApoteaCardImage(source))return source;
+    const url=new URL(source);
+    url.pathname=url.pathname.replace('/product-images/XL/','/product-images/L/');
+    return url.toString();
+  }catch(e){return source}
+}
 function productImageForWidth(source,width){
   if(!source)return null;
   let url;
   try{url=new URL(source)}catch(e){return source}
   const host=url.hostname.toLowerCase();
-  if(host==='media.power-cdn.net'&&/_\d+x\d+_t_g\.webp$/i.test(url.pathname)){
-    const sizeMatch=url.pathname.match(/_(\d+)x\1(_t_g\.webp)$/i);
-    if(!sizeMatch)return source;
-    const originalWidth=Number(sizeMatch[1]);
-    const targetWidth=Math.min(Math.round(width),originalWidth);
-    if(!Number.isFinite(targetWidth)||targetWidth<=0||targetWidth>=originalWidth)return source;
-    url.pathname=url.pathname.replace(/_\d+x\d+(_t_g\.webp)$/i,'_'+targetWidth+'x'+targetWidth+'$1');
-    return url.toString();
-  }
   if(host==='assets.ellosgroup.com'&&url.pathname.startsWith('/i/ellos/')){
     const imageName=url.searchParams.get('n')||url.pathname.split('/').pop();
     if(!imageName||imageName==='b')return source;
@@ -1420,37 +1432,22 @@ function productImageForWidth(source,width){
   }
   return source;
 }
-function supportsPowerResponsiveProductImage(source){
-  try{
-    const url=new URL(source);
-    return url.hostname.toLowerCase()==='media.power-cdn.net'&&/_(\d+)x\1_t_g\.webp$/i.test(url.pathname);
-  }catch(e){return false}
-}
 function supportsResponsiveProductImage(source){
   try{
     const host=new URL(source).hostname.toLowerCase();
-    return supportsPowerResponsiveProductImage(source)||host==='assets.ellosgroup.com'||host.endsWith('.imgix.net');
+    return host==='assets.ellosgroup.com'||host.endsWith('.imgix.net');
   }catch(e){return false}
 }
 function productImageSrcSet(source,widths){
   if(!source||!supportsResponsiveProductImage(source))return '';
-  let responsiveWidths=widths;
-  if(supportsPowerResponsiveProductImage(source)){
-    const url=new URL(source);
-    const sizeMatch=url.pathname.match(/_(\d+)x\1_t_g\.webp$/i);
-    if(sizeMatch){
-      const originalWidth=Number(sizeMatch[1]);
-      responsiveWidths=[...new Set([...widths.map(width=>Math.min(Math.round(width),originalWidth)),originalWidth])].sort((a,b)=>a-b);
-    }
-  }
-  return responsiveWidths.map(width=>productImageForWidth(source,width)+' '+width+'w').join(', ');
+  return widths.map(width=>productImageForWidth(source,width)+' '+width+'w').join(', ');
 }
 function productVisual(o,prioritize=false){
   const img=productImage(o);
   if(!img)return storeLogo(o);
-  const isPowerImage=supportsPowerResponsiveProductImage(img);
-  const cardSrc=productImageForWidth(img,isPowerImage?450:480);
-  const srcSet=productImageSrcSet(img,isPowerImage?[150,300,450,600]:[320,480,640,800]);
+  const isApoteaImage=supportsApoteaCardImage(img);
+  const cardSrc=isApoteaImage?apoteaCardImage(img):productImageForWidth(img,480);
+  const srcSet=productImageSrcSet(img,[320,480,640,800]);
   const responsive=srcSet?' srcset="'+esc(srcSet)+'" sizes="(max-width: 520px) 50vw, 240px"':'';
   const fallback=cardSrc!==img?' data-original-src="'+esc(img)+'"':'';
   const onerror="if(this.dataset.originalSrc){const fallback=this.dataset.originalSrc;this.dataset.originalSrc='';this.removeAttribute('srcset');this.removeAttribute('sizes');this.src=fallback;return;}this.style.display='none';this.nextElementSibling.style.display='flex'";
