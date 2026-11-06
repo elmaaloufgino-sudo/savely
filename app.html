@@ -1398,6 +1398,23 @@ function productImageForWidth(source,width){
   let url;
   try{url=new URL(source)}catch(e){return source}
   const host=url.hostname.toLowerCase();
+  if(host==='media.power-cdn.net'&&/_\d+x\d+_t_g\.webp$/i.test(url.pathname)){
+    const sizeMatch=url.pathname.match(/_(\d+)x\1(_t_g\.webp)$/i);
+    if(!sizeMatch)return source;
+    const originalWidth=Number(sizeMatch[1]);
+    const targetWidth=Math.min(Math.round(width),originalWidth);
+    if(!Number.isFinite(targetWidth)||targetWidth<=0||targetWidth>=originalWidth)return source;
+    url.pathname=url.pathname.replace(/_\d+x\d+(_t_g\.webp)$/i,'_'+targetWidth+'x'+targetWidth+'$1');
+    return url.toString();
+  }
+  if(host==='assets.ellosgroup.com'&&url.pathname.startsWith('/i/ellos/')){
+    const imageName=url.searchParams.get('n')||url.pathname.split('/').pop();
+    if(!imageName||imageName==='b')return source;
+    return 'https://assets.ellosgroup.com/i/ellos/b?$egfunction productImageForWidth(source,width){
+  if(!source)return null;
+  let url;
+  try{url=new URL(source)}catch(e){return source}
+  const host=url.hostname.toLowerCase();
   if(host==='assets.ellosgroup.com'&&url.pathname.startsWith('/i/ellos/')){
     const imageName=url.searchParams.get('n')||url.pathname.split('/').pop();
     if(!imageName||imageName==='b')return source;
@@ -1420,12 +1437,125 @@ function supportsResponsiveProductImage(source){
 function productImageSrcSet(source,widths){
   if(!source||!supportsResponsiveProductImage(source))return '';
   return widths.map(width=>productImageForWidth(source,width)+' '+width+'w').join(', ');
+}$emfunction productImageForWidth(source,width){
+  if(!source)return null;
+  let url;
+  try{url=new URL(source)}catch(e){return source}
+  const host=url.hostname.toLowerCase();
+  if(host==='assets.ellosgroup.com'&&url.pathname.startsWith('/i/ellos/')){
+    const imageName=url.searchParams.get('n')||url.pathname.split('/').pop();
+    if(!imageName||imageName==='b')return source;
+    return 'https://assets.ellosgroup.com/i/ellos/b?$eg$&$em$&$ep$&$ed$&n='+encodeURIComponent(imageName)+'&mw='+Math.round(width)+'&fmt=webp';
+  }
+  if(host.endsWith('.imgix.net')){
+    url.searchParams.set('auto','format,compress');
+    url.searchParams.set('w',String(Math.round(width)));
+    url.searchParams.set('q','80');
+    return url.toString();
+  }
+  return source;
+}
+function supportsResponsiveProductImage(source){
+  try{
+    const host=new URL(source).hostname.toLowerCase();
+    return host==='assets.ellosgroup.com'||host.endsWith('.imgix.net');
+  }catch(e){return false}
+}
+function productImageSrcSet(source,widths){
+  if(!source||!supportsResponsiveProductImage(source))return '';
+  return widths.map(width=>productImageForWidth(source,width)+' '+width+'w').join(', ');
+}$epfunction productImageForWidth(source,width){
+  if(!source)return null;
+  let url;
+  try{url=new URL(source)}catch(e){return source}
+  const host=url.hostname.toLowerCase();
+  if(host==='assets.ellosgroup.com'&&url.pathname.startsWith('/i/ellos/')){
+    const imageName=url.searchParams.get('n')||url.pathname.split('/').pop();
+    if(!imageName||imageName==='b')return source;
+    return 'https://assets.ellosgroup.com/i/ellos/b?$eg$&$em$&$ep$&$ed$&n='+encodeURIComponent(imageName)+'&mw='+Math.round(width)+'&fmt=webp';
+  }
+  if(host.endsWith('.imgix.net')){
+    url.searchParams.set('auto','format,compress');
+    url.searchParams.set('w',String(Math.round(width)));
+    url.searchParams.set('q','80');
+    return url.toString();
+  }
+  return source;
+}
+function supportsResponsiveProductImage(source){
+  try{
+    const host=new URL(source).hostname.toLowerCase();
+    return host==='assets.ellosgroup.com'||host.endsWith('.imgix.net');
+  }catch(e){return false}
+}
+function productImageSrcSet(source,widths){
+  if(!source||!supportsResponsiveProductImage(source))return '';
+  return widths.map(width=>productImageForWidth(source,width)+' '+width+'w').join(', ');
+}$edfunction productImageForWidth(source,width){
+  if(!source)return null;
+  let url;
+  try{url=new URL(source)}catch(e){return source}
+  const host=url.hostname.toLowerCase();
+  if(host==='assets.ellosgroup.com'&&url.pathname.startsWith('/i/ellos/')){
+    const imageName=url.searchParams.get('n')||url.pathname.split('/').pop();
+    if(!imageName||imageName==='b')return source;
+    return 'https://assets.ellosgroup.com/i/ellos/b?$eg$&$em$&$ep$&$ed$&n='+encodeURIComponent(imageName)+'&mw='+Math.round(width)+'&fmt=webp';
+  }
+  if(host.endsWith('.imgix.net')){
+    url.searchParams.set('auto','format,compress');
+    url.searchParams.set('w',String(Math.round(width)));
+    url.searchParams.set('q','80');
+    return url.toString();
+  }
+  return source;
+}
+function supportsResponsiveProductImage(source){
+  try{
+    const host=new URL(source).hostname.toLowerCase();
+    return host==='assets.ellosgroup.com'||host.endsWith('.imgix.net');
+  }catch(e){return false}
+}
+function productImageSrcSet(source,widths){
+  if(!source||!supportsResponsiveProductImage(source))return '';
+  return widths.map(width=>productImageForWidth(source,width)+' '+width+'w').join(', ');
+}n='+encodeURIComponent(imageName)+'&mw='+Math.round(width)+'&fmt=webp';
+  }
+  if(host.endsWith('.imgix.net')){
+    url.searchParams.set('auto','format,compress');
+    url.searchParams.set('w',String(Math.round(width)));
+    url.searchParams.set('q','80');
+    return url.toString();
+  }
+  return source;
+}
+function supportsResponsiveProductImage(source){
+  try{
+    const url=new URL(source);
+    const host=url.hostname.toLowerCase();
+    return (host==='media.power-cdn.net'&&/_\d+x\1_t_g\.webp$/i.test(url.pathname.match(/_(\d+)x\d+_t_g\.webp$/i)?.[0]||''))||host==='assets.ellosgroup.com'||host.endsWith('.imgix.net');
+  }catch(e){return false}
+}
+function productImageSrcSet(source,widths){
+  if(!source||!supportsResponsiveProductImage(source))return '';
+  let responsiveWidths=widths;
+  try{
+    const url=new URL(source);
+    if(url.hostname.toLowerCase()==='media.power-cdn.net'){
+      const sizeMatch=url.pathname.match(/_(\d+)x\1_t_g\.webp$/i);
+      if(sizeMatch){
+        const originalWidth=Number(sizeMatch[1]);
+        responsiveWidths=[...new Set([...widths.map(width=>Math.min(Math.round(width),originalWidth)),originalWidth])].sort((a,b)=>a-b);
+      }
+    }
+  }catch(e){}
+  return responsiveWidths.map(width=>productImageForWidth(source,width)+' '+width+'w').join(', ');
 }
 function productVisual(o,prioritize=false){
   const img=productImage(o);
   if(!img)return storeLogo(o);
-  const cardSrc=productImageForWidth(img,480);
-  const srcSet=productImageSrcSet(img,[320,480,640,800]);
+  const isPowerImage=/^https:\/\/media\.power-cdn\.net\/.*_\d+x\d+_t_g\.webp(?:\?.*)?$/i.test(img);
+  const cardSrc=productImageForWidth(img,isPowerImage?450:480);
+  const srcSet=productImageSrcSet(img,isPowerImage?[150,300,450,600]:[320,480,640,800]);
   const responsive=srcSet?' srcset="'+esc(srcSet)+'" sizes="(max-width: 520px) 50vw, 240px"':'';
   const fallback=cardSrc!==img?' data-original-src="'+esc(img)+'"':'';
   const onerror="if(this.dataset.originalSrc){const fallback=this.dataset.originalSrc;this.dataset.originalSrc='';this.removeAttribute('srcset');this.removeAttribute('sizes');this.src=fallback;return;}this.style.display='none';this.nextElementSibling.style.display='flex'";
@@ -1446,7 +1576,7 @@ function openProduct(id,keepCarousel=false){
   const detailSrc=productImageForWidth(img,960);
   const detailSrcSet=productImageSrcSet(img,[640,960,1200]);
   const detailResponsive=detailSrcSet?' srcset="'+esc(detailSrcSet)+'" sizes="(max-width: 480px) 100vw, 480px"':'';
-  const detailFallback=detailSrc!==img?' data-original-src="'+esc(img)+'"':'';
+  const detailFallback=(detailSrc!==img||detailSrcSet)?' data-original-src="'+esc(img)+'"':'';
   const image=img?'<img class="product-detail-shot product-detail-shot-'+o.id+'" src="'+esc(detailSrc)+'"'+detailResponsive+detailFallback+' alt="'+esc(o.n)+'" loading="eager" fetchpriority="high" decoding="async" onerror="if(this.dataset.originalSrc){const fallback=this.dataset.originalSrc;this.dataset.originalSrc=\'\';this.removeAttribute(\'srcset\');this.removeAttribute(\'sizes\');this.src=fallback;return;}this.style.display=\'none\'">':storeLogo(o);
   const details=[
     o.u?'<div class="product-detail"><b>Jämförpris</b>'+esc(o.u)+'</div>':'',
