@@ -1187,7 +1187,7 @@ function currentCampaigns(){
     .slice(0,4);
 }
 const DEMO=false; // true visar rutan 'under uppbyggnad / exempel'
-let CODES=[];
+let CODES=[],codesLoading=true;
 const CATS=['Alla','Mat & Dryck','Skönhet & Personlig vård','Hem & Inredning','Elektronik','Apotek','Kläder','Bygg & Hemmafix'];
 const ICONS={'Mat & Dryck':'🥗','Skönhet & Personlig vård':'✨','Hem & Inredning':'🛋️',Elektronik:'📱',Apotek:'💊',Kläder:'👕','Bygg & Hemmafix':'🛠️'};
 let anim=true,popId=null,DATA=[],loading=true,err='',tab='offers',cat='Alla',q='',hideMem=false,sortMode='recommended',cmp='',favs=new Set(),user=null,rewardSummary={available_points:0,pending_points:0,expiring_soon_points:0,next_expiry_at:null},rewardLoading=false,rewardError='',rewardHistory=[],rewardHistoryLoading=false,rewardHistoryError='',rewardCatalog=[],rewardCatalogLoading=false,rewardCatalogError='',rewardRedeemingId=null,rewardRedemptions=[],rewardRedemptionsLoading=false,rewardRedemptionsError='',isRewardAdmin=false,rewardAdminChecked=false,adminRedemptions=[],adminRedemptionsLoading=false,adminRedemptionsError='',adminRedemptionFilter='open',adminUpdatingId=null;
@@ -1206,29 +1206,29 @@ const dm=d=>iso(d)?(+d.slice(8,10))+'/'+(+d.slice(5,7)):'';
 const todayISO=()=>{const t=new Date();return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0')};
 const norm=r=>({a:okUrl(r.affiliate_url),w:okUrl(r.shop_url),lc:/LAST_CHANCE_IMAGE/.test(r.conditions||''),cond:/LAST_CHANCE_IMAGE/.test(r.conditions||'')?'':(r.conditions||''),k:iso(r.checked_on),vt:iso(r.valid_to),id:r.id,s:r.store,l:r.logo,col:r.color,c:r.category==='Mat'?'Mat & Dryck':r.category,n:r.name,p:+r.price,o:+r.old_price,u:r.unit_text,uv:r.unit_price==null?null:+r.unit_price,m:r.membership,e:iso(r.valid_to)?dm(r.valid_to):r.valid_until,g:r.compare_group,img:r.image_url||null,searchText:searchKey([r.store,r.name,r.category,r.unit_text,/LAST_CHANCE_IMAGE/.test(r.conditions||'')?'':(r.conditions||'')].join(' '))});
 
+async function loadCodes(){
+  try{
+    if(sb){
+      const cr=await sb.from('codes').select('*').order('id');
+      if(!cr.error&&Array.isArray(cr.data))CODES=cr.data.map(r=>({a:okUrl(r.affiliate_url),s:r.store,l:r.logo||String(r.store).slice(0,2),col:r.color,code:r.code,d:(r.description||'')+(r.valid_until?', gäller t.o.m. '+r.valid_until:'')}));
+    }
+  }catch(e){
+    // Erbjudandena ska inte behöva vänta på rabattkodstjänsten.
+  }finally{
+    codesLoading=false;
+    if(tab==='codes')render();
+  }
+}
 async function loadDeals(){
   loading=true;err='';render();
-  const dealsTask=(async()=>{
-    try{
-      if(!sb)throw new Error('supabase');
-      const {data,error}=await sb.from('deals').select('*').order('id');
-      if(error)throw error;
-      DATA=(Array.isArray(data)?data:[]).map(norm).filter(o=>!o.vt||o.vt>=todayISO());
-    }catch(e){
-      err='Kunde inte hämta erbjudanden. Kontrollera din anslutning och försök igen.';
-    }
-  })();
-  const codesTask=(async()=>{
-    try{
-      if(sb){
-        const cr=await sb.from('codes').select('*').order('id');
-        if(!cr.error&&Array.isArray(cr.data))CODES=cr.data.map(r=>({a:okUrl(r.affiliate_url),s:r.store,l:r.logo||String(r.store).slice(0,2),col:r.color,code:r.code,d:(r.description||'')+(r.valid_until?', gäller t.o.m. '+r.valid_until:'')}));
-      }
-    }catch(e){
-      // Erbjudanden ska fortfarande visas om rabattkodstjänsten inte svarar.
-    }
-  })();
-  await Promise.all([dealsTask,codesTask]);
+  try{
+    if(!sb)throw new Error('supabase');
+    const {data,error}=await sb.from('deals').select('*').order('id');
+    if(error)throw error;
+    DATA=(Array.isArray(data)?data:[]).map(norm).filter(o=>!o.vt||o.vt>=todayISO());
+  }catch(e){
+    err='Kunde inte hämta erbjudanden. Kontrollera din anslutning och försök igen.';
+  }
   loading=false;
   anim=true;render();
 }
@@ -1585,7 +1585,7 @@ function compare(){
   ${items.map((o,i)=>`<div class="row ${i?'':'best'}"><div class="logo" style="background:${colr(o.col)}">${esc(o.l)}</div><div class="t"><b>${esc(o.s)}: ${kr(o.p)}</b><span>${esc(o.n)} · ${esc(o.u)}${o.m?' · kräver '+esc(o.m):''}</span></div>${i?`<span class="mute">+${Math.round((o.uv/best-1)*100)} %</span>`:'<span class="tag">Billigast</span>'}</div>`).join('')}`}
 
 function codes(){
-  if(loading)return '<h2>Rabattkoder</h2><div class="empty"><b>Hämtar rabattkoder…</b></div>';
+  if(codesLoading)return '<h2>Rabattkoder</h2><div class="empty"><b>Hämtar rabattkoder…</b></div>';
   if(!CODES.length)return '<h2>Rabattkoder</h2><div class="empty"><b>Inga rabattkoder just nu</b>Kom tillbaka snart.</div>';
   return `<h2>Rabattkoder</h2>${CODES.some(c=>c.a)?DISC:''}${CODES.map(c=>`<div class="row"><div class="logo" style="background:${colr(c.col)}">${esc(c.l)}</div><div class="t"><b>${esc(c.s)}</b><span>${esc(c.d)}</span>${c.a?`<div><a class="golink" href="${esc(c.a)}" target="_blank" rel="sponsored nofollow noopener noreferrer">Till butiken ↗</a> <span class="adl">Annonslänk</span></div>`:''}</div><button class="code" data-copy="${esc(c.code)}" aria-label="Kopiera koden ${esc(c.code)}">${esc(c.code)}</button></div>`).join('')}`}
 
@@ -1867,6 +1867,7 @@ function openSharedDealFromQuery(){
   if(!offer)return;
   tab='offers';cat='Alla';q='';render();openProduct(offer.id);
 }
+loadCodes();
 loadDeals().then(openSharedDealFromQuery);
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}
 document.addEventListener('change',e=>{if(e.target&&e.target.id==='offer-sort'){sortMode=e.target.value;render();}});
