@@ -19,9 +19,11 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Fyndaren">
+<script>document.documentElement.classList.add('js')</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preload" href="https://fonts.gstatic.com/s/cinzel/v26/8vIJ7ww63mVu7gt79mT7PkRXMw.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Cinzel:wght@600;700&display=optional">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Cinzel:wght@600;700&display=optional" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Cinzel:wght@600;700&display=optional"></noscript>
@@ -44,7 +46,7 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var
 .search input{flex:1;border:0;outline:0;background:none;height:46px;font:inherit;font-size:15px;color:#0f172a}
 .search svg{color:#94a3b8;flex:none}
 main{padding:16px}
-h2{display:flex;align-items:center;gap:8px;font-size:18px;margin:18px 0 12px;font-weight:800}
+h2{display:flex;align-items:center;gap:8px;font-size:18px;line-height:1.35;margin:18px 0 12px;font-weight:800}
 h2 .n{margin-left:auto;font-size:13px;font-weight:400;color:var(--mute)}
 .hero{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px;padding:0 16px 4px;scrollbar-width:none}
 .hero::-webkit-scrollbar,.chips::-webkit-scrollbar{display:none}
@@ -134,6 +136,7 @@ body::after{content:"";position:fixed;top:-160px;left:50%;width:560px;height:380
 main,footer{position:relative;z-index:1}
 header{background:rgba(10,10,12,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid rgba(212,175,55,.18)}
 .brand h1,h2,.stats b,.sum b{font-family:Cinzel,Georgia,serif}
+.stats b,.sum b,.rewards-points{line-height:1.2}
 .brand h1{text-transform:uppercase;letter-spacing:.14em;font-size:22px}
 .brand p{color:var(--gink)}
 .mark{box-shadow:0 0 0 1px rgba(212,175,55,.55),0 6px 22px rgba(212,175,55,.25)}
@@ -159,15 +162,15 @@ header{background:rgba(10,10,12,.72);backdrop-filter:blur(14px);-webkit-backdrop
 .btn.ghost{background:none;color:var(--gink);border:1px solid var(--line)}
 .sum{background:linear-gradient(135deg,#1a1608,#0f0f12);border:1px solid rgba(212,175,55,.35)}.sum b{color:var(--gink)}
 nav{background:rgba(10,10,12,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid rgba(212,175,55,.18)}
-nav button{transition:color .25s,transform .25s}
+nav button{transition:transform .25s}
 nav button[aria-current="page"]{color:var(--gink);filter:drop-shadow(0 0 8px rgba(212,175,55,.45))}
 nav button:active{transform:scale(.94)}
 .toast{background:#1a1608;border:1px solid var(--green);color:var(--gink)}
 .demo{border:1px solid rgba(212,175,55,.3)}
-.enter{animation:fade .4s both}
+
 .skel{height:108px;border:0;background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.11),rgba(255,255,255,.04));background-size:200% 100%;animation:shim 1.4s linear infinite}
 @keyframes glow{0%,100%{opacity:.65}50%{opacity:1}}
-@keyframes fade{from{opacity:0}to{opacity:1}}
+
 @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.5)}100%{transform:scale(1)}}
 @keyframes shim{to{background-position:-200% 0}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -369,7 +372,7 @@ header{box-shadow:0 10px 30px rgba(0,0,0,.14)}
 .card .fav{width:36px;height:36px}
 .card .go a{border-radius:11px}
 nav{background:rgba(10,10,12,.88);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top-color:rgba(230,202,101,.16);padding-top:10px}
-nav button{position:relative;border-radius:13px;min-height:54px;transition:color .2s,background .2s}
+nav button{position:relative;border-radius:13px;min-height:54px;transition:background .2s,transform .2s}
 nav button svg{transition:transform .2s}
 nav button[aria-current="page"]{background:linear-gradient(180deg,rgba(212,175,55,.12),rgba(212,175,55,.035))}
 nav button[aria-current="page"]::before{content:"";position:absolute;top:-10px;left:30%;right:30%;height:2px;border-radius:2px;background:var(--grad)}
@@ -470,6 +473,8 @@ header{padding-top:max(16px,env(safe-area-inset-top));padding-bottom:16px;border
 .search:focus-within{border-color:rgba(230,202,101,.62);box-shadow:0 0 0 3px rgba(230,202,101,.09)}
 .search input::placeholder{color:rgba(255,255,255,.48)}
 footer{display:grid;justify-items:center;align-content:center;gap:8px;min-height:96px;padding:18px 20px calc(28px + env(safe-area-inset-bottom));line-height:20px}
+/* Keep the footer out of the initial visual layout until offer data has settled. */
+html.js:not(.deals-ready) footer{visibility:hidden}
 .footer-links{display:flex;align-items:center;gap:12px;white-space:nowrap;line-height:20px}
 .footer-links span{color:var(--mute)}
 footer a{display:inline-block;line-height:20px}
@@ -1231,6 +1236,7 @@ async function loadDeals(){
   }
   loading=false;
   anim=true;render();
+  document.documentElement.classList.add('deals-ready');
 }
 async function loadRewards(){
   if(!sb||!user){
@@ -1664,7 +1670,6 @@ function rewardAdminPanel(){
 
 function render(){
   const mainEl=$('#main');mainEl.innerHTML={offers,compare,codes,list,rewards,adminRewards:rewardAdminPanel}[tab]();
-  mainEl.classList.toggle('enter',anim);
   if(anim){const sb=mainEl.querySelector('.stats b');if(sb&&DATA.length)countUp(sb,DATA.length)}
   anim=false;
   $('#cnt').textContent=favs.size;const nc=$('#navCnt');nc.textContent=favs.size;nc.hidden=!favs.size;
