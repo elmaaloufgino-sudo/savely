@@ -58,6 +58,8 @@ h2 .n{margin-left:auto;font-size:13px;font-weight:400;color:var(--mute)}
 .chip{flex:none;border:1px solid var(--line);background:var(--chip);color:var(--ink);border-radius:22px;padding:10px 18px;font-family:inherit;font-weight:600;font-size:15px;cursor:pointer}
 .chip[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:#fff}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.card-details{align-self:flex-start;margin:0 0 4px;padding:0;border:0;background:none;color:var(--gink);font:inherit;font-size:12px;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.card-details:focus-visible{outline:2px solid var(--gink);outline-offset:4px;border-radius:3px}
 .card{position:relative;background:var(--card);border-radius:20px;padding:14px;box-shadow:0 1px 3px rgba(15,23,42,.08);display:flex;flex-direction:column}
 .badge{position:absolute;top:12px;left:12px;background:var(--green);color:#fff;font-weight:700;font-size:13px;border-radius:12px;padding:3px 9px}
 .fav{position:absolute;top:10px;right:10px;width:38px;height:38px;border-radius:50%;border:0;background:var(--bg);color:var(--mute);display:grid;place-items:center;cursor:pointer}
@@ -1463,7 +1465,7 @@ function productVisual(o,prioritize=false){
 }
 
 function offerBadge(o){const t=[o.cond||'',o.n||''].join(' ');const m=t.match(/(\\d+)\\s*för\\s*(\\d+(?:[,.]\\d{1,2})?)\\s*kr/i);return m?m[1]+' för '+m[2].replace('.',',')+' kr':null;}
-function card(o,index=99){const f=favs.has(o.id);const sv=Math.round((o.o-o.p)*100)/100;return `<article class="card" data-product="${o.id}" tabindex="0" role="button" aria-label="Visa detaljer för ${esc(o.n)}"><div class="tile" style="--tc:${colr(o.col)}"><span class="badge">${o.lc?'Last chance':(offerBadge(o)|| (o.s==='Kappahl'&&/2 för 299/i.test(o.n)?'2 för 299:-':'-'+pct(o)+'%'))}</span><button type="button" class="fav ${f?'on':''} ${o.id===popId?'pop':''}" data-fav="${o.id}" onclick="event.preventDefault();event.stopPropagation();toggleFav(Number(this.dataset.fav));return false" aria-pressed="${f}" aria-label="${f?'Ta bort från sparlistan':'Spara i sparlistan'}">${heart}</button>${productVisual(o,index===0)}<span class="ptag">${kr(o.p)}</span></div><div class="info"><div class="store">${esc(o.s)}<span class="cat"> · ${esc(o.c)}</span></div><h3>${esc(o.n)}</h3><div class="price"><s>${kr(o.o)}</s><span class="sv">Spara ${kr(sv)}</span></div>${o.u?`<div class="mute">Jmf: ${esc(o.u)}</div>`:''}${o.m?`<span class="mem">Kräver ${esc(o.m)}</span>`:''}${o.cond?`<div class="cond">${esc(o.cond)}</div>`:''}${o.e?`<div class="exp">${clock} Gäller t.o.m. ${esc(o.e)}</div>`:''}${o.k?`<div class="chk">Kontrollerad ${dm(o.k)}</div>`:''}${o.a?`<div class="go"><a href="${esc(o.a)}" target="_blank" rel="sponsored nofollow noopener noreferrer">Till erbjudandet ↗</a><span class="adl">Annonslänk</span></div>`:(o.w?`<div class="go"><a class="pl" href="${esc(o.w)}" target="_blank" rel="noopener noreferrer">Till erbjudandet ↗</a></div>`:`<div class="go"><button type="button" class="offer-cta" data-product-cta="${o.id}" aria-label="Visa erbjudandet för ${esc(o.n)}">Visa erbjudandet ↗</button></div>`)}</div></article>`}
+function card(o,index=99){const f=favs.has(o.id);const sv=Math.round((o.o-o.p)*100)/100;return `<article class="card" data-product="${o.id}"><div class="tile" style="--tc:${colr(o.col)}"><span class="badge">${o.lc?'Last chance':(offerBadge(o)|| (o.s==='Kappahl'&&/2 för 299/i.test(o.n)?'2 för 299:-':'-'+pct(o)+'%'))}</span><button type="button" class="fav ${f?'on':''} ${o.id===popId?'pop':''}" data-fav="${o.id}" onclick="event.preventDefault();event.stopPropagation();toggleFav(Number(this.dataset.fav));return false" aria-pressed="${f}" aria-label="${f?'Ta bort från sparlistan':'Spara i sparlistan'}">${heart}</button>${productVisual(o,index===0)}<span class="ptag">${kr(o.p)}</span></div><div class="info"><div class="store">${esc(o.s)}<span class="cat"> · ${esc(o.c)}</span></div><h3>${esc(o.n)}</h3><button type="button" class="card-details" data-card-details="${o.id}" aria-label="Visa detaljer för ${esc(o.n)}">Visa detaljer ↗</button><div class="price"><s>${kr(o.o)}</s><span class="sv">Spara ${kr(sv)}</span></div>${o.u?`<div class="mute">Jmf: ${esc(o.u)}</div>`:''}${o.m?`<span class="mem">Kräver ${esc(o.m)}</span>`:''}${o.cond?`<div class="cond">${esc(o.cond)}</div>`:''}${o.e?`<div class="exp">${clock} Gäller t.o.m. ${esc(o.e)}</div>`:''}${o.k?`<div class="chk">Kontrollerad ${dm(o.k)}</div>`:''}${o.a?`<div class="go"><a href="${esc(o.a)}" target="_blank" rel="sponsored nofollow noopener noreferrer">Till erbjudandet ↗</a><span class="adl">Annonslänk</span></div>`:(o.w?`<div class="go"><a class="pl" href="${esc(o.w)}" target="_blank" rel="noopener noreferrer">Till erbjudandet ↗</a></div>`:`<div class="go"><button type="button" class="offer-cta" data-product-cta="${o.id}" aria-label="Visa erbjudandet för ${esc(o.n)}">Visa erbjudandet ↗</button></div>`)}</div></article>`}
 
 function openProduct(id,keepCarousel=false){
   if(!keepCarousel){activeProductIds=[...document.querySelectorAll('.card[data-product]')].map(el=>Number(el.dataset.product)).filter((value,index,all)=>Number.isFinite(value)&&all.indexOf(value)===index);if(!activeProductIds.includes(Number(id)))activeProductIds=DATA.map(item=>item.id)}
@@ -1813,13 +1815,13 @@ document.addEventListener('click',e=>{
   else if(d.copy){const c=d.copy;try{navigator.clipboard.writeText(c).then(()=>toast('Koden '+c+' är kopierad'),()=>toast('Din kod: '+c))}catch(x){toast('Din kod: '+c)}}
 });
 document.addEventListener('click',e=>{
+  const detailsButton=e.target.closest('[data-card-details]');
+  if(detailsButton){openProduct(Number(detailsButton.dataset.cardDetails));return}
   const cardEl=e.target.closest('.card[data-product]');
   if(!cardEl||e.target.closest('a,button,input,select,textarea,[data-fav]'))return;
   openProduct(Number(cardEl.dataset.product));
 });
 document.addEventListener('keydown',e=>{
-  const cardEl=e.target.closest&&e.target.closest('.card[data-product]');
-  if(cardEl&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openProduct(Number(cardEl.dataset.product));return}
   const dialog=$('#modal .sheet');
   if(!dialog)return;
   if(e.key==='Escape'){e.preventDefault();if($('#modal .product-sheet'))closeProduct();else closeAuth();return}
