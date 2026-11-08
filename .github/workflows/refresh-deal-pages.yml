@@ -2,8 +2,16 @@ name: Refresh public deal pages
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/refresh-deal-pages.yml"
+      - "scripts/generate-deal-pages.mjs"
+      - "app.html"
   schedule:
-    - cron: "17 */6 * * *"
+    # Refresh twice per hour, away from the top of the hour.
+    - cron: "17,47 * * * *"
 
 permissions:
   contents: write
