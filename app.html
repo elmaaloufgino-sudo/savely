@@ -1233,7 +1233,7 @@ async function loadDeals(){
   loading=true;err='';render();
   try{
     if(!sb)throw new Error('supabase');
-    const {data,error}=await sb.from('deals').select('*').order('id');
+    const {data,error}=await sb.from('deals').select('*').order('id',{ascending:false});
     if(error)throw error;
     DATA=(Array.isArray(data)?data:[]).map(norm).filter(o=>!o.vt||o.vt>=todayISO());
   }catch(e){
@@ -1587,13 +1587,13 @@ function offers(){
 
 function compare(){
   const gs=[...new Set(DATA.filter(o=>o.g).map(o=>o.g))];
-  if(!gs.length)return `<h2>Jämför jämförpris</h2><div class="empty"><b>${loading?'Hämtar…':'Inget att jämföra ännu'}</b></div>`;
+  if(!gs.length)return `<h2>Jämför priser</h2><div class="empty"><b>${loading?'Hämtar…':'Inget att jämföra ännu'}</b></div>`;
   if(!gs.includes(cmp))cmp=gs[0];
   const items=DATA.filter(o=>o.g===cmp&&Number.isFinite(o.uv)).sort((a,b)=>a.uv-b.uv);
-  if(!items.length)return `<h2>Jämför jämförpris</h2><div class="chips" style="margin-top:0" role="group" aria-label="Produkter">${gs.map(g=>`<button class="chip" data-cmp="${esc(g)}" aria-pressed="${g===cmp}">${esc(g)}</button>`).join('')}</div><div class="empty"><b>Inga jämförpriser tillgängliga</b>Det finns inga jämförpriser för den här produktgruppen just nu.</div>`;
+  if(!items.length)return `<h2>Jämför priser</h2><div class="chips" style="margin-top:0" role="group" aria-label="Produkter">${gs.map(g=>`<button class="chip" data-cmp="${esc(g)}" aria-pressed="${g===cmp}">${esc(g)}</button>`).join('')}</div><div class="empty"><b>Inga jämförpriser tillgängliga</b>Det finns inga jämförpriser för den här produktgruppen just nu.</div>`;
   const best=items[0].uv;
-  return `<h2>Jämför jämförpris</h2><div class="chips" style="margin-top:0" role="group" aria-label="Produkter">${gs.map(g=>`<button class="chip" data-cmp="${esc(g)}" aria-pressed="${g===cmp}">${esc(g)}</button>`).join('')}</div>
-  <h2 style="font-size:15px;color:var(--mute);font-weight:600">Billigast per kilo överst</h2>
+  return `<h2>Jämför priser</h2><div class="chips" style="margin-top:0" role="group" aria-label="Produkter">${gs.map(g=>`<button class="chip" data-cmp="${esc(g)}" aria-pressed="${g===cmp}">${esc(g)}</button>`).join('')}</div>
+  <h2 style="font-size:15px;color:var(--mute);font-weight:600">Lägst jämförpris överst</h2>
   ${items.map((o,i)=>`<div class="row ${i?'':'best'}"><div class="logo" style="background:${colr(o.col)}">${esc(o.l)}</div><div class="t"><b>${esc(o.s)}: ${kr(o.p)}</b><span>${esc(o.n)} · ${esc(o.u)}${o.m?' · kräver '+esc(o.m):''}</span></div>${i?`<span class="mute">+${Math.round((o.uv/best-1)*100)} %</span>`:'<span class="tag">Billigast</span>'}</div>`).join('')}`}
 
 function codes(){
