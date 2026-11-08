@@ -1220,6 +1220,67 @@ button:focus-visible,input:focus-visible,a:focus-visible{
   }
 }
 
+
+/* ===== Fyndaren: mjukare kolsvart/grafitpalett ===== */
+:root{
+  --bg:#141418;
+  --card:#202027;
+  --ink:#F3F3F5;
+  --mute:#B6B6C0;
+  --head:#141418;
+  --line:rgba(255,255,255,.13);
+  --chip:#202027;
+  --nav:#141418;
+}
+body{
+  background:radial-gradient(110% 48% at 50% -12%,rgba(212,175,55,.08),transparent 68%),#141418;
+}
+body::before{background:var(--head)}
+body::after{
+  background:radial-gradient(closest-side,rgba(212,175,55,.12),transparent);
+  opacity:.28;
+}
+header{
+  background:rgba(20,20,24,.94);
+  border-bottom-color:rgba(212,175,55,.15);
+}
+.search-dock{
+  background:rgba(20,20,24,.92);
+  border-bottom-color:rgba(230,202,101,.13);
+}
+.search{
+  background:#202027;
+  border-color:rgba(255,255,255,.12);
+}
+.search input{color:var(--ink)}
+.chip{
+  background:#202027;
+  border-color:rgba(255,255,255,.12);
+}
+.card,.row{
+  background:#202027;
+  border-color:rgba(255,255,255,.10);
+}
+@media(hover:hover){
+  .card:hover{background:#262630}
+}
+.stats{
+  background:linear-gradient(135deg,#242116,#202027);
+  border-color:rgba(212,175,55,.22);
+}
+nav{
+  background:rgba(20,20,24,.96);
+  border-top-color:rgba(212,175,55,.16);
+}
+.hero>.campaign-card,
+.campaign-details{background:#222229}
+.sheet{background:var(--card)}
+.sort-row select{
+  background:var(--card);
+  color:var(--ink);
+  border-color:rgba(230,202,101,.3);
+}
+
 </style>
 </head>
 <body>
