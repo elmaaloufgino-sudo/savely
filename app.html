@@ -43,7 +43,7 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var
 .hb{position:relative;width:46px;height:46px;border-radius:50%;border:0;background:#334155;color:#fff;display:grid;place-items:center;cursor:pointer}
 .hb i{position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;border-radius:10px;background:#34d399;color:#0f172a;font-family:inherit;font-weight:700;font-size:11px;line-height:20px;font-style:normal;text-align:center}
 .search{margin-top:14px;display:flex;align-items:center;gap:10px;background:#fff;border-radius:16px;padding:0 14px}
-.search input{flex:1;border:0;outline:0;background:none;height:46px;font:inherit;font-size:15px;color:#0f172a}
+.search input{flex:1;border:0;outline:0;background:none;height:46px;font:inherit;font-size:16px;color:#0f172a}
 .search svg{color:#94a3b8;flex:none}
 main{padding:16px}
 h2{display:flex;align-items:center;gap:8px;font-size:18px;line-height:1.35;margin:18px 0 12px;font-weight:800}
@@ -517,13 +517,15 @@ footer a:hover{text-decoration:underline}
 
 
 /* ===== Startsida: erbjudanden direkt i fokus ===== */
-.campaign-title{margin-top:2px;margin-bottom:10px}\n.offers-title{margin-top:14px;margin-bottom:8px}
+.campaign-title{margin-top:2px;margin-bottom:10px}
+.offers-title{margin-top:14px;margin-bottom:8px}
 .offers-title .n{font-size:13px;color:var(--gink)}
 main{padding-top:10px}
 .chips{margin-top:8px}
 .sw{margin-top:8px;margin-bottom:10px}
 @media(max-width:380px){
-  .campaign-title{margin-top:0;margin-bottom:8px}\n  .offers-title{margin-top:10px;margin-bottom:6px}
+  .campaign-title{margin-top:0;margin-bottom:8px}
+  .offers-title{margin-top:10px;margin-bottom:6px}
   .chips{margin-top:6px}
   .sw{padding:8px 10px;margin-top:6px;margin-bottom:8px}
 }
@@ -1152,7 +1154,7 @@ button:focus-visible,input:focus-visible,a:focus-visible{
   }
 }
 
-</style>
+
 </head>
 <body>
 <div class="ticker" id="ticker" hidden role="region" aria-label="Heta och nya erbjudanden"><div class="tk" id="tk"></div></div>
@@ -1464,7 +1466,7 @@ function productVisual(o,prioritize=false){
   return '<img class="product-shot product-shot-'+o.id+'" src="'+esc(cardSrc)+'"'+responsive+fallback+' alt="'+esc(o.n)+'" loading="'+(prioritize?'eager':'lazy')+'" fetchpriority="'+(prioritize?'high':'low')+'" decoding="async" onerror="'+onerror+'"><span class="logo-fallback" style="display:none">'+storeLogo(o)+'</span>';
 }
 
-function offerBadge(o){const t=[o.cond||'',o.n||''].join(' ');const m=t.match(/(\\d+)\\s*för\\s*(\\d+(?:[,.]\\d{1,2})?)\\s*kr/i);return m?m[1]+' för '+m[2].replace('.',',')+' kr':null;}
+function offerBadge(o){const t=[o.cond||'',o.n||''].join(' ');const m=t.match(/(\d+)\s*för\s*(\d+(?:[,.]\d{1,2})?)\s*kr/i);return m?m[1]+' för '+m[2].replace('.',',')+' kr':null;}
 function card(o,index=99){const f=favs.has(o.id);const sv=Math.round((o.o-o.p)*100)/100;return `<article class="card" data-product="${o.id}"><div class="tile" style="--tc:${colr(o.col)}"><span class="badge">${o.lc?'Last chance':(offerBadge(o)|| (o.s==='Kappahl'&&/2 för 299/i.test(o.n)?'2 för 299:-':'-'+pct(o)+'%'))}</span><button type="button" class="fav ${f?'on':''} ${o.id===popId?'pop':''}" data-fav="${o.id}" onclick="event.preventDefault();event.stopPropagation();toggleFav(Number(this.dataset.fav));return false" aria-pressed="${f}" aria-label="${f?'Ta bort från sparlistan':'Spara i sparlistan'}">${heart}</button>${productVisual(o,index===0)}<span class="ptag">${kr(o.p)}</span></div><div class="info"><div class="store">${esc(o.s)}<span class="cat"> · ${esc(o.c)}</span></div><h3>${esc(o.n)}</h3><button type="button" class="card-details" data-card-details="${o.id}" aria-label="Visa detaljer för ${esc(o.n)}">Visa detaljer ↗</button><div class="price"><s>${kr(o.o)}</s><span class="sv">Spara ${kr(sv)}</span></div>${o.u?`<div class="mute">Jmf: ${esc(o.u)}</div>`:''}${o.m?`<span class="mem">Kräver ${esc(o.m)}</span>`:''}${o.cond?`<div class="cond">${esc(o.cond)}</div>`:''}${o.e?`<div class="exp">${clock} Gäller t.o.m. ${esc(o.e)}</div>`:''}${o.k?`<div class="chk">Kontrollerad ${dm(o.k)}</div>`:''}${o.a?`<div class="go"><a href="${esc(o.a)}" target="_blank" rel="sponsored nofollow noopener noreferrer">Till erbjudandet ↗</a><span class="adl">Annonslänk</span></div>`:(o.w?`<div class="go"><a class="pl" href="${esc(o.w)}" target="_blank" rel="noopener noreferrer">Till erbjudandet ↗</a></div>`:`<div class="go"><button type="button" class="offer-cta" data-product-cta="${o.id}" aria-label="Visa erbjudandet för ${esc(o.n)}">Visa erbjudandet ↗</button></div>`)}</div></article>`}
 
 function openProduct(id,keepCarousel=false){
@@ -1481,6 +1483,7 @@ function openProduct(id,keepCarousel=false){
   const detailFallback=(detailSrc!==img||detailSrcSet)?' data-original-src="'+esc(img)+'"':'';
   const image=img?'<img class="product-detail-shot product-detail-shot-'+o.id+'" src="'+esc(detailSrc)+'"'+detailResponsive+detailFallback+' alt="'+esc(o.n)+'" loading="eager" fetchpriority="high" decoding="async" onerror="if(this.dataset.originalSrc){const fallback=this.dataset.originalSrc;this.dataset.originalSrc=\'\';this.removeAttribute(\'srcset\');this.removeAttribute(\'sizes\');this.src=fallback;return;}this.style.display=\'none\'">':storeLogo(o);
   const details=[
+    '<div class="product-detail"><b>Tidigare pris</b>Beloppet som anges som jämförelsepris för erbjudandet.</div>',
     o.u?'<div class="product-detail"><b>Jämförpris</b>'+esc(o.u)+'</div>':'',
     o.m?'<div class="product-detail"><b>Medlemskap</b>Kräver '+esc(o.m)+'</div>':'',
     o.cond?'<div class="product-detail"><b>Villkor</b>'+esc(o.cond)+'</div>':'',
@@ -1489,7 +1492,7 @@ function openProduct(id,keepCarousel=false){
   ].join('');
   const url=o.a||o.w;
   activeProductId=o.id;
-  const cta=url?'<a class="product-cta" href="'+esc(url)+'" target="_blank" rel="'+(o.a?'sponsored nofollow noopener noreferrer':'noopener noreferrer')+'">'+(o.a?'Till butiken ↗':'Till erbjudandet ↗')+'</a>':'';
+  const cta=url?'<a class="product-cta" href="'+esc(url)+'" target="_blank" rel="'+(o.a?'sponsored nofollow noopener noreferrer':'noopener noreferrer')+'">'+(o.a?'Till butiken ↗':'Till erbjudandet ↗')+'</a>'+(o.a?'<p class="disc" style="text-align:center;margin:8px 0 0">Annonslänk. Fyndaren kan få provision om du handlar här, utan extra kostnad för dig.</p>':''):'';
   const carouselButtons=activeProductIds.length>1?'<button type="button" class="product-carousel-btn prev" data-product-prev aria-label="Föregående erbjudande" title="Föregående erbjudande">‹</button><button type="button" class="product-carousel-btn next" data-product-next aria-label="Nästa erbjudande" title="Nästa erbjudande">›</button>':'';
   const shareButton='<button type="button" class="product-share" data-share-product="'+o.id+'">Dela detta fynd ↗</button>';
   $('#modal').innerHTML='<div class="modal product-modal" data-product-close><section class="sheet product-sheet" role="dialog" aria-modal="true" aria-labelledby="product-dialog-title"><button type="button" class="product-close" data-product-close aria-label="Stäng produktdetaljer">×</button><div class="product-hero'+(/apoteket/i.test(o.s)?' apoteket-hero':'')+'" style="--tc:'+colr(o.col)+'"><span class="product-detail-discount">'+(o.lc?'Last chance':(offerBadge(o)||('-'+pct(o)+'%')))+'</span>'+image+carouselButtons+'</div><div class="product-store">'+esc(o.s)+' · '+esc(o.c)+'</div><h2 class="product-name" id="product-dialog-title">'+esc(o.n)+'</h2><div class="product-price"><strong>'+kr(o.p)+'</strong><s>'+kr(o.o)+'</s><span class="product-saving">'+(offerBadge(o)?offerBadge(o):'Spara '+kr(sv)+' ('+pct(o)+'%)')+'</span></div><div class="product-details">'+details+'</div>'+shareButton+cta+'</section></div>';
@@ -1574,7 +1577,7 @@ function offers(){
   const campaigns=currentCampaigns();
   const campaignColors=['linear-gradient(135deg,#2b2209,#6b5416)','linear-gradient(135deg,#1c1c20,#4a4a52)','linear-gradient(135deg,#3a1f12,#8a5a2b)','linear-gradient(135deg,#3b2f0a,#8f7222)'];
   const campaignContent=loading?'<div class="empty">Hämtar aktuella kampanjer…</div>':err?'<div class="empty">Kampanjerna kunde inte hämtas just nu.</div>':campaigns.length?campaigns.map((o,i)=>{const saved=Math.round((o.o-o.p)*100)/100;return `<button class="hc campaign-card" data-hero="${o.id}" aria-label="Visa kampanjen för ${esc(o.n)}"><span class="campaign-visual">${productVisual(o,i<2)}</span><span class="campaign-details"><span class="campaign-topline"><span class="campaign-kicker">UTVALD KAMPANJ</span><small>−${pct(o)} %</small></span><span class="campaign-store">${esc(o.s)}</span><b>${esc(o.n)}</b><span class="campaign-price"><strong>${kr(o.p)}</strong><s>${kr(o.o)}</s></span><span class="campaign-saving">Du sparar ${kr(saved)}</span><span class="campaign-cta">Se erbjudandet <span aria-hidden="true">↗</span></span></span></button>`}).join(''):'<div class="empty">Inga rabatterade erbjudanden just nu.</div>';
-  return `${DEMO?'<div class="demo">Under uppbyggnad: erbjudandena nedan är exempel tills riktiga är på plats.</div>':'<div class="disc">Priser och villkor kan ändras. Kontrollera alltid pris och villkor hos butiken innan du handlar.</div>'}${DATA.some(o=>o.a)?DISC:''}<h2 class="campaign-title">Heta kampanjer just nu</h2><div class="hero">${campaignContent}</div>
+  return `${DEMO?'<div class="demo">Under uppbyggnad: erbjudandena nedan är exempel tills riktiga är på plats.</div>':'<div class="disc">Priser och villkor kan ändras. Överstruket pris visas som jämförelsepriset som anges för erbjudandet. Kontrollera alltid pris och villkor hos butiken innan du handlar.</div>'}${DATA.some(o=>o.a)?DISC:''}<h2 class="campaign-title">Heta kampanjer just nu</h2><div class="hero">${campaignContent}</div>
   <h2 class="offers-title">Aktiva erbjudanden<span class="n" aria-live="polite">${loading||err?'':DATA.length+' st'}</span></h2>
   <div class="chips" role="group" aria-label="Kategorier">${CATS.map(c=>`<button class="chip" data-cat="${c}" aria-pressed="${c===cat}">${ICONS[c]?ICONS[c]+' ':''}${c}</button>`).join('')}</div>
   <div class="sort-row"><label for="offer-sort">Sortera</label><select id="offer-sort" aria-label="Sortera erbjudanden"><option value="recommended"${sortMode==='recommended'?' selected':''}>Rekommenderade</option><option value="cheapest"${sortMode==='cheapest'?' selected':''}>Billigaste först</option><option value="expensive"${sortMode==='expensive'?' selected':''}>Dyraste först</option><option value="newest"${sortMode==='newest'?' selected':''}>Senaste först</option><option value="discount"${sortMode==='discount'?' selected':''}>Störst rabatt först</option></select></div>
