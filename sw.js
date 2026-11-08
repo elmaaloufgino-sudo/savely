@@ -1,4 +1,4 @@
-const CACHE = 'fyndaren-v25';
+const CACHE = 'fyndaren-v26';
 
 // Kontrollera att varje fil här finns på servern. En saknad fil hoppas över,
 // men ger då ingen offline-support för just den filen.
@@ -7,11 +7,14 @@ const SHELL = [
   'index.html',
   'app.html',
   'manifest.webmanifest',
-  'icon.svg',
+  'favicon-32.png',
+  'favicon-48.png',
   'icon-192.png',
   'icon-512.png',
   'pwa-icon-192.png',
-  'pwa-icon-512.svg'
+  'pwa-icon-512.png',
+  'apple-touch-icon.png',
+  'og-image.jpg'
 ];
 
 self.addEventListener('install', event => {
