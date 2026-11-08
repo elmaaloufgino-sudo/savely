@@ -10,7 +10,8 @@ const SHELL = [
   'icon.svg',
   'icon-192.png',
   'icon-512.png',
-  'pwa-icon-192.png'
+  'pwa-icon-192.png',
+  'pwa-icon-512.svg'
 ];
 
 self.addEventListener('install', event => {
