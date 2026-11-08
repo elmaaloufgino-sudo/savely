@@ -210,17 +210,17 @@ function collect(){
   if(!price||price<=0||!old)return {err:'Enter a deal price and an original price.'};
   if(old<=price)return {err:'The original price must be higher than the deal price.'};
   if(!$('#f_check_campaign').checked||!$('#f_check_reference').checked||!$('#f_check_terms').checked)return {err:'Bekräfta alla tre pris- och villkorskontrollerna innan du sparar.'};
-  const w=store.split(/\\s+/);
+  const w=store.split(/\s+/);
   const logo=v('f_logo').trim()||(w.length>1?w.map(x=>x[0]).join('').slice(0,3).toUpperCase():store.slice(0,3));
   const aff=v('f_aff').trim();
-  if(aff&&!/^https:\\/\\/\\S+$/i.test(aff))return {err:'The shop link must start with https:// (use the link from your affiliate network).'};
+  if(aff&&!/^https:\/\/\S+$/i.test(aff))return {err:'The shop link must start with https:// (use the link from your affiliate network).'};
   const url=v('f_url').trim();
-  if(url&&!/^https:\\/\\/\\S+$/i.test(url))return {err:'The offer page link must start with https://'};
+  if(url&&!/^https:\/\/\S+$/i.test(url))return {err:'The offer page link must start with https://'};
   const cond=v('f_cond').trim(),chk=v('f_chk');
   if(!aff&&!url)return {err:'Lägg till en direktlänk till exakt produkt eller erbjudande.'};
   if(!chk)return {err:'Ange datum när pris, villkor och produktlänk senast kontrollerades.'};
   if(chk>todayISO())return {err:'Kontrolldatumet kan inte ligga i framtiden.'};
-  return {p:{store,logo,color:v('f_color'),category:v('f_cat'),name,price,old_price:old,image_url:image,unit_text:v('f_utext').trim()||null,unit_price:num(v('f_uprice)),membership:v('f_mem').trim()||null,affiliate_url:aff||null,shop_url:url||null,valid_to:vt,checked_on:chk,conditions:cond||null,valid_until:until,compare_group:v('f_group').trim()||null}};
+  return {p:{store,logo,color:v('f_color'),category:v('f_cat'),name,price,old_price:old,image_url:image,unit_text:v('f_utext').trim()||null,unit_price:num(v('f_uprice')),membership:v('f_mem').trim()||null,affiliate_url:aff||null,shop_url:url||null,valid_to:vt,checked_on:chk,conditions:cond||null,valid_until:until,compare_group:v('f_group').trim()||null}};
 }
 async function save(){
   const r=collect();if(r.err)return setMsg(r.err);
@@ -343,7 +343,7 @@ async function publishSelected(){
  const list=rows.map(r=>r.store+': '+r.name+' — '+kr(r.price)+' — giltig t.o.m. '+r.valid_until).join('\\n');
  if(!confirm('Publicera '+rows.length+' valda produkter?\\n\\n'+list+'\\n\\nKontrollera att varje bild visar rätt produkt. Fortsätt?'))return;
  const firstId=DATA.reduce((m,d)=>Math.max(m,Number(d.id)||0),0)+1;
- const payload=rows.map((r,i)=>{const parts=r.store.trim().split(/\\s+/);const logo=parts.length>1?parts.map(x=>x[0]).join('').slice(0,3).toUpperCase():r.store.slice(0,3).toUpperCase();return {id:firstId+i,store:r.store,logo,color:'#10b981',category:r.category||'Övrigt',name:r.name,price:r.price,old_price:r.old_price,image_url:r.image_url,affiliate_url:r.affiliate_url||null,shop_url:r.shop_url||null,valid_until:r.valid_until,valid_to:r.valid_to,checked_on:IMPORT_CHECKED_ON,conditions:r.conditions||null};});
+ const payload=rows.map((r,i)=>{const parts=r.store.trim().split(/\s+/);const logo=parts.length>1?parts.map(x=>x[0]).join('').slice(0,3).toUpperCase():r.store.slice(0,3).toUpperCase();return {id:firstId+i,store:r.store,logo,color:'#10b981',category:r.category||'Övrigt',name:r.name,price:r.price,old_price:r.old_price,image_url:r.image_url,affiliate_url:r.affiliate_url||null,shop_url:r.shop_url||null,valid_until:r.valid_until,valid_to:r.valid_to,checked_on:IMPORT_CHECKED_ON,conditions:r.conditions||null};});
  const btn=$('[data-publish-selected]');if(btn){btn.disabled=true;btn.textContent='Saving…'}
  const result=await sb.from('deals').insert(payload).select();
  if(result.error||!result.data||result.data.length!==payload.length){const m=$('#publishmsg');if(m)m.textContent='Could not confirm the save. Check the deals list before retrying.';if(btn){btn.disabled=false;btn.textContent='Add selected products'}return}
