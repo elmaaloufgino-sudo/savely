@@ -1326,7 +1326,7 @@ let sb=null;
 try{sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY)}catch(e){}
 
 function currentCampaigns(){
-  return DATA.filter(o=>!isComparisonOnly(o)&&o.n&&o.s&&Number(o.p)>0&&Number(o.o)>Number(o.p))
+  return DATA.filter(o=>isOfferListing(o)&&!!o.vt&&o.n&&o.s&&Number(o.p)>0&&Number(o.o)>Number(o.p))
     .slice()
     .sort((a,b)=>(pct(b)-pct(a))||String(b.k||'').localeCompare(String(a.k||''))||(Number(b.id)||0)-(Number(a.id)||0))
     .slice(0,4);
@@ -1360,6 +1360,13 @@ const dm=d=>iso(d)?(+d.slice(8,10))+'/'+(+d.slice(5,7)):'';
 const todayISO=()=>{const t=new Date();return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0')};
 const norm=r=>({a:okUrl(r.affiliate_url),w:okUrl(r.shop_url),lc:/LAST_CHANCE_IMAGE/.test(r.conditions||''),cond:/LAST_CHANCE_IMAGE/.test(r.conditions||'')?'':(r.conditions||''),k:iso(r.checked_on),vt:iso(r.valid_to),id:r.id,s:r.store,l:r.logo,col:r.color,c:r.category==='Mat'?'Mat & Dryck':r.category,n:r.name,p:+r.price,o:+r.old_price,u:r.unit_text,uv:r.unit_price==null?null:+r.unit_price,m:r.membership,e:iso(r.valid_to)?dm(r.valid_to):r.valid_until,g:r.compare_group,img:r.image_url||null,searchText:searchKey([r.store,r.name,r.category,r.unit_text,/LAST_CHANCE_IMAGE/.test(r.conditions||'')?'':(r.conditions||'')].join(' '))});
 function isComparisonOnly(o){return !!o.g&&!o.vt&&!o.e}
+function isOfferListing(o){
+  if(isComparisonOnly(o))return false;
+  if(o.vt)return true;
+  const validity=String(o.e||'').toLocaleLowerCase('sv-SE');
+  const conditions=String(o.cond||'').toLocaleLowerCase('sv-SE');
+  return validity.includes('gäller så länge lagret räcker')||conditions.includes('alltid bra pris');
+}
 
 async function loadCodes(){
   try{
@@ -1715,7 +1722,7 @@ function searchKey(value){
 }
 function offers(){
   const t=searchKey(q);
-  const offerData=DATA.filter(o=>!isComparisonOnly(o));
+  const offerData=DATA.filter(isOfferListing);
   const list=offerData.filter(o=>(cat==='Alla'||o.c===cat)&&(!hideMem||!o.m)&&(!t||(o.searchText||searchKey([o.s,o.n,o.c,o.u,o.cond].join(' '))).includes(t)));
   const sorted=sortMode==='recommended'?list:list.slice().sort((a,b)=>{
     if(sortMode==='cheapest')return (Number(a.p)||0)-(Number(b.p)||0);
