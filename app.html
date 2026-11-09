@@ -1530,7 +1530,15 @@ function productImage(o){
     207:'https://www.apoteket.se/produktbilder/Validoo/702655js.jpg',
     208:'https://biosalma.se/wp-content/uploads/2024/06/Magnesium-375mg-1.png'
   };
-  return verifiedImages[o.id]||o.img||null;
+  const source=verifiedImages[o.id]||o.img||null;
+  if(!source)return null;
+  try{
+    const url=new URL(source);
+    if(url.protocol!=='https:'||!url.hostname||url.origin===location.origin)return null;
+    return url.toString();
+  }catch(e){
+    return null;
+  }
 }
 
 const APOTEA_CARD_IMAGE_FILES=new Set([
