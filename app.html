@@ -1365,7 +1365,7 @@ function isOfferListing(o){
   if(o.vt)return true;
   const validity=String(o.e||'').toLocaleLowerCase('sv-SE');
   const conditions=String(o.cond||'').toLocaleLowerCase('sv-SE');
-  return validity.includes('gäller så länge lagret räcker')||conditions.includes('alltid bra pris');
+  return validity.includes('gäller så länge lagret räcker');
 }
 
 async function loadCodes(){
