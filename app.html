@@ -1326,7 +1326,7 @@ let sb=null;
 try{sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY)}catch(e){}
 
 function currentCampaigns(){
-  return DATA.filter(o=>o.n&&o.s&&Number(o.p)>0&&Number(o.o)>Number(o.p))
+  return DATA.filter(o=>isOfferListing(o)&&!!o.vt&&o.n&&o.s&&Number(o.p)>0&&Number(o.o)>Number(o.p))
     .slice()
     .sort((a,b)=>(pct(b)-pct(a))||String(b.k||'').localeCompare(String(a.k||''))||(Number(b.id)||0)-(Number(a.id)||0))
     .slice(0,4);
@@ -1359,6 +1359,14 @@ const iso=d=>d&&/^\d{4}-\d{2}-\d{2}/.test(d)?String(d).slice(0,10):'';
 const dm=d=>iso(d)?(+d.slice(8,10))+'/'+(+d.slice(5,7)):'';
 const todayISO=()=>{const t=new Date();return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0')};
 const norm=r=>({a:okUrl(r.affiliate_url),w:okUrl(r.shop_url),lc:/LAST_CHANCE_IMAGE/.test(r.conditions||''),cond:/LAST_CHANCE_IMAGE/.test(r.conditions||'')?'':(r.conditions||''),k:iso(r.checked_on),vt:iso(r.valid_to),id:r.id,s:r.store,l:r.logo,col:r.color,c:r.category==='Mat'?'Mat & Dryck':r.category,n:r.name,p:+r.price,o:+r.old_price,u:r.unit_text,uv:r.unit_price==null?null:+r.unit_price,m:r.membership,e:iso(r.valid_to)?dm(r.valid_to):r.valid_until,g:r.compare_group,img:r.image_url||null,searchText:searchKey([r.store,r.name,r.category,r.unit_text,/LAST_CHANCE_IMAGE/.test(r.conditions||'')?'':(r.conditions||'')].join(' '))});
+function isComparisonOnly(o){return !!o.g&&!o.vt&&!o.e}
+function isOfferListing(o){
+  if(isComparisonOnly(o))return false;
+  if(o.vt)return true;
+  const validity=String(o.e||'').toLocaleLowerCase('sv-SE');
+  const conditions=String(o.cond||'').toLocaleLowerCase('sv-SE');
+  return validity.includes('gäller så länge lagret räcker');
+}
 
 async function loadCodes(){
   try{
@@ -1714,7 +1722,8 @@ function searchKey(value){
 }
 function offers(){
   const t=searchKey(q);
-  const list=DATA.filter(o=>(cat==='Alla'||o.c===cat)&&(!hideMem||!o.m)&&(!t||(o.searchText||searchKey([o.s,o.n,o.c,o.u,o.cond].join(' '))).includes(t)));
+  const offerData=DATA.filter(isOfferListing);
+  const list=offerData.filter(o=>(cat==='Alla'||o.c===cat)&&(!hideMem||!o.m)&&(!t||(o.searchText||searchKey([o.s,o.n,o.c,o.u,o.cond].join(' '))).includes(t)));
   const sorted=sortMode==='recommended'?list:list.slice().sort((a,b)=>{
     if(sortMode==='cheapest')return (Number(a.p)||0)-(Number(b.p)||0);
     if(sortMode==='expensive')return (Number(b.p)||0)-(Number(a.p)||0);
@@ -1731,7 +1740,7 @@ function offers(){
   const campaignColors=['linear-gradient(135deg,#2b2209,#6b5416)','linear-gradient(135deg,#1c1c20,#4a4a52)','linear-gradient(135deg,#3a1f12,#8a5a2b)','linear-gradient(135deg,#3b2f0a,#8f7222)'];
   const campaignContent=loading?'<div class="empty">Hämtar aktuella kampanjer…</div>':err?'<div class="empty">Kampanjerna kunde inte hämtas just nu.</div>':campaigns.length?campaigns.map((o,i)=>{const saved=Math.round((o.o-o.p)*100)/100;return `<button class="hc campaign-card" data-hero="${o.id}" aria-label="Visa kampanjen för ${esc(o.n)}"><span class="campaign-visual">${productVisual(o,i<2)}</span><span class="campaign-details"><span class="campaign-topline"><span class="campaign-kicker">UTVALD KAMPANJ</span><small>−${pct(o)} %</small></span><span class="campaign-store">${esc(o.s)}</span><b>${esc(o.n)}</b><span class="campaign-price"><strong>${kr(o.p)}</strong><span class="campaign-previous-price"><small>Tidigare pris</small><s>${kr(o.o)}</s></span></span><span class="campaign-saving">Du sparar ${kr(saved)}</span><span class="campaign-cta">Se erbjudandet <span aria-hidden="true">↗</span></span></span></button>`}).join(''):'<div class="empty">Inga rabatterade erbjudanden just nu.</div>';
   return `${DEMO?'<div class="demo">Under uppbyggnad: erbjudandena nedan är exempel tills riktiga är på plats.</div>':'<div class="disc">Tidigare pris: butikens lägsta pris under de 30 dagarna före prissänkningen. Priser och villkor kan ändras. Kontrollera alltid pris och villkor hos butiken innan du handlar.</div>'}${DATA.some(o=>o.a)?DISC:''}<h2 class="campaign-title">Heta kampanjer just nu</h2><div class="hero">${campaignContent}</div>
-  <h2 class="offers-title">Aktiva erbjudanden<span class="n" aria-live="polite">${loading||err?'':DATA.length+' st'}</span></h2>
+  <h2 class="offers-title">Aktiva erbjudanden<span class="n" aria-live="polite">${loading||err?'':offerData.length+' st'}</span></h2>
   <div class="chips" role="group" aria-label="Kategorier">${CATS.map(c=>`<button class="chip" data-cat="${c}" aria-pressed="${c===cat}">${ICONS[c]?ICONS[c]+' ':''}${c}</button>`).join('')}</div>
   <div class="sort-row"><label for="offer-sort">Sortera</label><select id="offer-sort" aria-label="Sortera erbjudanden"><option value="recommended"${sortMode==='recommended'?' selected':''}>Rekommenderade</option><option value="cheapest"${sortMode==='cheapest'?' selected':''}>Billigaste först</option><option value="expensive"${sortMode==='expensive'?' selected':''}>Dyraste först</option><option value="newest"${sortMode==='newest'?' selected':''}>Senaste först</option><option value="discount"${sortMode==='discount'?' selected':''}>Störst rabatt först</option></select></div>
   <div class="sw"><button data-mem aria-pressed="${hideMem}" aria-label="Dölj erbjudanden som kräver medlemskap"></button>Dölj erbjudanden som kräver medlemskap</div>
