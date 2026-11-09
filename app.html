@@ -1335,7 +1335,16 @@ const DEMO=false; // true visar rutan 'under uppbyggnad / exempel'
 let CODES=[],codesLoading=true;
 const CATS=['Alla','Mat & Dryck','Skönhet & Personlig vård','Hem & Inredning','Elektronik','Apotek','Kläder','Bygg & Hemmafix'];
 const ICONS={'Mat & Dryck':'🥗','Skönhet & Personlig vård':'✨','Hem & Inredning':'🛋️',Elektronik:'📱',Apotek:'💊',Kläder:'👕','Bygg & Hemmafix':'🛠️'};
-let anim=true,popId=null,DATA=[],loading=true,err='',tab='offers',cat='Alla',q='',hideMem=false,sortMode='recommended',cmp='',favs=new Set(),user=null,rewardSummary={available_points:0,pending_points:0,expiring_soon_points:0,next_expiry_at:null},rewardLoading=false,rewardError='',rewardHistory=[],rewardHistoryLoading=false,rewardHistoryError='',rewardCatalog=[],rewardCatalogLoading=false,rewardCatalogError='',rewardRedeemingId=null,rewardRedemptions=[],rewardRedemptionsLoading=false,rewardRedemptionsError='',isRewardAdmin=false,rewardAdminChecked=false,adminRedemptions=[],adminRedemptionsLoading=false,adminRedemptionsError='',adminRedemptionFilter='open',adminUpdatingId=null;
+const VALID_TABS=['offers','compare','codes','list','rewards','adminRewards'];
+function readSavedTab(){
+  try{const saved=localStorage.getItem('fyndaren-active-tab');return VALID_TABS.includes(saved)?saved:'offers'}catch(e){return 'offers'}
+}
+function setActiveTab(nextTab){
+  if(!VALID_TABS.includes(nextTab))return;
+  tab=nextTab;
+  try{localStorage.setItem('fyndaren-active-tab',tab)}catch(e){}
+}
+let anim=true,popId=null,DATA=[],loading=true,err='',tab=readSavedTab(),cat='Alla',q='',hideMem=false,sortMode='recommended',cmp='',favs=new Set(),user=null,rewardSummary={available_points:0,pending_points:0,expiring_soon_points:0,next_expiry_at:null},rewardLoading=false,rewardError='',rewardHistory=[],rewardHistoryLoading=false,rewardHistoryError='',rewardCatalog=[],rewardCatalogLoading=false,rewardCatalogError='',rewardRedeemingId=null,rewardRedemptions=[],rewardRedemptionsLoading=false,rewardRedemptionsError='',isRewardAdmin=false,rewardAdminChecked=false,adminRedemptions=[],adminRedemptionsLoading=false,adminRedemptionsError='',adminRedemptionFilter='open',adminUpdatingId=null;
 
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1945,8 +1954,8 @@ document.addEventListener('click',e=>{
   if(d.productPrev!==undefined){stepProduct(-1);return}
   if(d.productNext!==undefined){stepProduct(1);return}
   if(d.shareProduct!==undefined){shareProduct(d.shareProduct);return}
-  if(d.tab){tab=d.tab;anim=true;render();scrollTo(0,0)}
-  else if(d.tick){const o=DATA.find(x=>x.id===+d.tick);if(o){q=o.n;$('#q').value=o.n;cat='Alla';tab='offers';anim=true;render();scrollToTarget(document.querySelector('.grid')||document.body)}}
+  if(d.tab){setActiveTab(d.tab);anim=true;render();scrollTo(0,0)}
+  else if(d.tick){const o=DATA.find(x=>x.id===+d.tick);if(o){q=o.n;$('#q').value=o.n;cat='Alla';setActiveTab('offers');anim=true;render();scrollToTarget(document.querySelector('.grid')||document.body)}}
   else if(d.fav){toggleFav(+d.fav)}
   else if(d.productCta){openProduct(+d.productCta)}
   else if(d.cat){const chips=document.querySelector('.chips');const chipsLeft=chips?chips.scrollLeft:0;cat=d.cat;anim=true;render();const nextChips=document.querySelector('.chips');if(nextChips)nextChips.scrollLeft=chipsLeft}
@@ -1991,7 +2000,7 @@ document.addEventListener('keydown',e=>{
 let searchTimer=null;
 $('#q').addEventListener('input',e=>{
   q=e.target.value;
-  if(tab!=='offers')tab='offers';
+  if(tab!=='offers')setActiveTab('offers');
   clearTimeout(searchTimer);
   searchTimer=setTimeout(()=>{anim=false;render()},90);
 });
@@ -2020,7 +2029,7 @@ function openSharedDealFromQuery(){
   if(!Number.isSafeInteger(id)||id<=0)return;
   const offer=DATA.find(item=>Number(item.id)===id);
   if(!offer)return;
-  tab='offers';cat='Alla';q='';render();openProduct(offer.id);
+  setActiveTab('offers');cat='Alla';q='';render();openProduct(offer.id);
 }
 loadCodes();
 loadDeals().then(openSharedDealFromQuery);
