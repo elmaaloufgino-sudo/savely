@@ -1372,7 +1372,7 @@ async function loadCodes(){
   try{
     if(sb){
       const cr=await sb.from('codes').select('*').order('id');
-      if(!cr.error&&Array.isArray(cr.data))CODES=cr.data.map(r=>({a:okUrl(r.affiliate_url),s:r.store,l:r.logo||String(r.store).slice(0,2),col:r.color,code:r.code,d:(r.description||'')+(r.valid_until?', gäller t.o.m. '+r.valid_until:'')}));
+      if(!cr.error&&Array.isArray(cr.data))CODES=cr.data.filter(r=>!r.valid_until||String(r.valid_until).slice(0,10)>=todayISO()).map(r=>({a:okUrl(r.affiliate_url),s:r.store,l:r.logo||String(r.store).slice(0,2),col:r.color,code:r.code,d:(r.description||'')+(r.valid_until?', gäller t.o.m. '+r.valid_until:'')}));
     }
   }catch(e){
     // Erbjudandena ska inte behöva vänta på rabattkodstjänsten.
