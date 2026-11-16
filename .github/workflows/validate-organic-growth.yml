@@ -29,9 +29,12 @@ jobs:
           node scripts/generate-deal-pages.mjs
           test -s sitemap.xml
           test -d fynd
-          page_count="$(find fynd -name index.html -type f | wc -l)"
+          test -s fynd/index.html
+          grep -q '<link rel="canonical" href="https://fyndaren.se/fynd/">' fynd/index.html
+          grep -q 'href="/fynd/"' index.html
+          page_count="$(find fynd -mindepth 2 -name index.html -type f | wc -l)"
           test "$page_count" -gt 0
-          echo "Generated $page_count offer pages."
+          echo "Generated $page_count offer pages and the static deal catalog."
       - name: Check inline browser scripts
         shell: bash
         run: |
