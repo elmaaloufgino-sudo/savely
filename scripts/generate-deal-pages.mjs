@@ -198,14 +198,89 @@ function makePage(deal) {
   ].join("\n");
 }
 
+
+function makeCatalogPage(catalogDeals) {
+  const description = "Aktuella fynd från svenska butiker på Fyndaren. " +
+    catalogDeals.length + " erbjudanden som inte har passerat giltighetstiden och har kontrollerats under de senaste " +
+    MAX_CHECK_AGE_DAYS + " dagarna.";
+  const entries = catalogDeals.map(deal => {
+    const slug = slugify(deal.store + " " + deal.name) + "-" + Number(deal.id);
+    const validTo = validDate(deal.valid_to);
+    const expiry = validTo
+      ? "Gäller till och med " + dateLabel(validTo)
+      : String(deal.valid_until || "").trim();
+    return [
+      '<li><a class="deal" href="/fynd/' + html(slug) + '/">',
+      '<span class="store">' + html(deal.store) + '</span>',
+      '<span class="name">' + html(deal.name) + '</span>',
+      '<span class="price">' + html(money(deal.price)) + '</span>',
+      expiry ? '<span class="expiry">' + html(expiry) + '</span>' : "",
+      deal.category ? '<span class="category">' + html(deal.category) + '</span>' : "",
+      '</a></li>'
+    ].join("");
+  });
+  const listing = entries.length
+    ? '<ul class="deals">' + entries.join("\\n") + '</ul>'
+    : '<p class="empty">Det finns inga aktuella, nyligen kontrollerade fynd att visa just nu. Besök <a href="/app.html">Fyndaren</a> för att se appens erbjudanden.</p>';
+
+  return [
+    '<!doctype html>',
+    '<html lang="sv">',
+    '<head>',
+    '<meta charset="utf-8">',
+    '<meta name="viewport" content="width=device-width, initial-scale=1">',
+    '<title>Alla aktuella fynd och erbjudanden | Fyndaren</title>',
+    '<meta name="description" content="' + html(description) + '">',
+    '<meta name="robots" content="index,follow">',
+    '<link rel="canonical" href="' + BASE_URL + '/fynd/">',
+    '<meta name="theme-color" content="#090909">',
+    '<meta property="og:type" content="website">',
+    '<meta property="og:site_name" content="Fyndaren">',
+    '<meta property="og:title" content="Alla aktuella fynd och erbjudanden | Fyndaren">',
+    '<meta property="og:description" content="' + html(description) + '">',
+    '<meta property="og:url" content="' + BASE_URL + '/fynd/">',
+    '<style>',
+    ':root{color-scheme:dark;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#090909;color:#f7f7f7}',
+    '*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(100% 36% at 50% 0,rgba(212,175,55,.13),transparent 72%),#090909}',
+    'header,footer{border-color:rgba(212,175,55,.2);color:#aaa}header{border-bottom:1px solid;padding:20px 18px}',
+    '.wrap{max-width:1040px;margin:0 auto}.brand{color:#e6ca65;font-weight:900;letter-spacing:.1em;text-decoration:none}',
+    'main{max-width:1040px;margin:0 auto;padding:34px 18px 58px}h1{margin:0;color:#fff;font-size:clamp(28px,5vw,42px);line-height:1.15}',
+    '.eyebrow{margin:0 0 10px;color:#e6ca65;font-size:12px;font-weight:800;letter-spacing:.13em;text-transform:uppercase}',
+    '.intro{max-width:720px;color:#ccc;line-height:1.6;margin:14px 0 8px}.count{color:#e6ca65;font-weight:800;font-size:14px;margin:18px 0 20px}',
+    '.deals{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px;list-style:none;margin:0;padding:0}',
+    '.deal{height:100%;display:flex;flex-direction:column;gap:7px;padding:17px;border:1px solid rgba(212,175,55,.25);border-radius:16px;background:linear-gradient(150deg,rgba(255,255,255,.055),rgba(255,255,255,.02));color:inherit;text-decoration:none;transition:border-color .18s,background .18s}',
+    '.deal:hover,.deal:focus-visible{border-color:#e6ca65;background:rgba(212,175,55,.08)}.store{color:#e6ca65;font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase}',
+    '.name{color:#fff;font-weight:750;line-height:1.4}.price{color:#e6ca65;font-size:21px;font-weight:900}.expiry,.category{color:#aaa;font-size:12px;line-height:1.45}',
+    '.category{margin-top:auto;padding-top:4px}.empty{padding:22px;border:1px solid rgba(212,175,55,.25);border-radius:14px;color:#ccc;line-height:1.6}.empty a,footer a{color:#e6ca65}',
+    'footer{border-top:1px solid;padding:20px 18px;font-size:12px;line-height:1.7}footer .wrap{display:flex;flex-wrap:wrap;gap:8px 18px}',
+    '@media(prefers-reduced-motion:reduce){*{transition:none!important}}',
+    '</style>',
+    '</head>',
+    '<body>',
+    '<header><div class="wrap"><a class="brand" href="/">FYNDAREN</a></div></header>',
+    '<main>',
+    '<p class="eyebrow">Smarta priser · Svenska butiker</p>',
+    '<h1>Alla aktuella fynd</h1>',
+    '<p class="intro">Här samlar vi erbjudanden som fortfarande gäller och har kontrollerats nyligen. Listan uppdateras automatiskt.</p>',
+    '<p class="count">' + catalogDeals.length + ' aktuella fynd · Senast uppdaterad ' + html(dateLabel(today)) + '</p>',
+    listing,
+    '</main>',
+    '<footer><div class="wrap"><a href="/">Startsidan</a><a href="/app.html">Öppna appen</a><a href="/om-oss.html">Om Fyndaren</a><a href="/integritetspolicy.html">Integritetspolicy</a></div></footer>',
+    '</body>',
+    '</html>'
+  ].join("\\n");
+}
+
 mkdirSync(OUT_DIR, { recursive: true });
 const sitemapUrls = [
   BASE_URL + "/",
   BASE_URL + "/app.html",
   BASE_URL + "/om-oss.html",
-  BASE_URL + "/integritetspolicy.html"
+  BASE_URL + "/integritetspolicy.html",
+  BASE_URL + "/fynd/"
 ];
 const knownSlugs = new Set();
+const catalogDeals = new Set();
 
 for (const deal of deals) {
   const slug = slugify(deal.store + " " + deal.name) + "-" + Number(deal.id);
@@ -218,8 +293,18 @@ for (const deal of deals) {
   const checkedOn = validDate(deal.checked_on);
   const expired = !!validTo && validTo < today;
   const recentlyChecked = !!checkedOn && checkedOn <= today && checkedOn >= freshnessCutoff;
-  if (!expired && recentlyChecked) sitemapUrls.push(BASE_URL + "/fynd/" + slug + "/");
+  if (!expired && recentlyChecked) {
+    sitemapUrls.push(BASE_URL + "/fynd/" + slug + "/");
+    catalogDeals.add(deal);
+  }
 }
+
+const sortedCatalogDeals = [...catalogDeals].sort((a, b) => {
+  const aDate = validDate(a.valid_to) || "9999-12-31";
+  const bDate = validDate(b.valid_to) || "9999-12-31";
+  return aDate.localeCompare(bDate) || String(a.store).localeCompare(String(b.store), "sv");
+});
+writeFileSync(join(OUT_DIR, "index.html"), makeCatalogPage(sortedCatalogDeals), "utf8");
 
 // Remove pages only when the underlying deal itself has been deleted.
 for (const entry of readdirSync(OUT_DIR, { withFileTypes: true })) {
@@ -235,4 +320,4 @@ const sitemap = [
   '</urlset>'
 ].join("\n");
 writeFileSync(join(ROOT, "sitemap.xml"), sitemap, "utf8");
-console.log("Generated " + deals.length + " offer pages; " + (sitemapUrls.length - 4) + " verified pages included in sitemap for " + today + ".");
+console.log("Generated " + deals.length + " offer pages; " + (sitemapUrls.length - 5) + " verified pages included in sitemap for " + today + ".");
