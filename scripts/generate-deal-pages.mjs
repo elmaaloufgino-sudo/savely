@@ -220,7 +220,7 @@ function makeCatalogPage(catalogDeals) {
     ].join("");
   });
   const listing = entries.length
-    ? '<ul class="deals">' + entries.join("\\n") + '</ul>'
+    ? '<ul class="deals">' + entries.join("\n") + '</ul>'
     : '<p class="empty">Det finns inga aktuella, nyligen kontrollerade fynd att visa just nu. Besök <a href="/app.html">Fyndaren</a> för att se appens erbjudanden.</p>';
 
   return [
@@ -268,7 +268,7 @@ function makeCatalogPage(catalogDeals) {
     '<footer><div class="wrap"><a href="/">Startsidan</a><a href="/app.html">Öppna appen</a><a href="/om-oss.html">Om Fyndaren</a><a href="/integritetspolicy.html">Integritetspolicy</a></div></footer>',
     '</body>',
     '</html>'
-  ].join("\\n");
+  ].join("\n");
 }
 
 mkdirSync(OUT_DIR, { recursive: true });
