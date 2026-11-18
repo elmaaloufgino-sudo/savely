@@ -1722,33 +1722,65 @@ async function attachGallery(o){
       return response.json();
     }).catch(error=>{galleryRequest=null;throw error});
     const images=(await galleryRequest)[key[1]];
-    const shot=hero.querySelector('.product-detail-shot');
+    let shot=hero.querySelector('.product-detail-shot');
     if(!hero.isConnected||!shot||!images?.length)return;
     const urls=images.map(path=>new URL(path,images[0]).href);
-    let current=0;
-    const show=()=>{
-      shot.dataset.originalSrc=productImage(o);
-      shot.removeAttribute('srcset');
-      shot.style.display='';
-      shot.src=urls[current];
-      shot.alt=o.n+' – bild '+(current+1)+' av '+urls.length;
-    };
-    show();
-    if(urls.length<2)return;
     const controls=document.createElement('div');
     controls.className='gallery-controls';
-    controls.innerHTML='<button type="button" aria-label="Föregående bild">‹</button><span aria-live="polite"></span><button type="button" aria-label="Nästa bild">›</button>';
-    hero.after(controls);
+    controls.innerHTML='<button type="button" aria-label="Föregående bild">‹</button><span aria-live="polite">Bild 1 av '+urls.length+'</span><button type="button" aria-label="Nästa bild">›</button>';
     const counter=controls.querySelector('span');
-    const move=direction=>{
-      current=(current+direction+urls.length)%urls.length;
-      show();
-      counter.textContent='Bild '+(current+1)+' av '+urls.length;
-    };
-    counter.textContent='Bild 1 av '+urls.length;
-    controls.firstElementChild.onclick=()=>move(-1);
-    controls.lastElementChild.onclick=()=>move(1);
-    moveGallery=move;
+    let current=0,requested=0,request=0;
+    let nextImage;
+
+    function prepareImage(index,priority){
+      const image=new Image();
+      image.fetchPriority=priority;
+      const loaded=new Promise((resolve,reject)=>{
+        image.onload=resolve;
+        image.onerror=reject;
+        image.src=urls[index];
+      });
+      const ready=loaded.then(()=>image.decode?.()).then(()=>image);
+      return {index,image,ready};
+    }
+
+    async function show(index,initial=false){
+      const token=++request;
+      const pending=nextImage?.index===index?nextImage:prepareImage(index,'auto');
+      nextImage=null;
+      pending.image.fetchPriority='auto';
+      try{
+        const image=await pending.ready;
+        if(token!==request||!hero.isConnected)return;
+        image.className=shot.className;
+        image.alt=o.n+' – bild '+(index+1)+' av '+urls.length;
+        shot.replaceWith(image);
+        shot=image;
+        current=index;
+        if(!initial)counter.textContent='Bild '+(current+1)+' av '+urls.length;
+      }catch{
+        if(token!==request||!hero.isConnected)return;
+        requested=current;
+        if(!initial)toast('Bilden kunde inte laddas. Försök igen.');
+      }
+      if(urls.length>1&&!navigator.connection?.saveData){
+        nextImage=prepareImage((current+1)%urls.length,'low');
+        const prefetch=nextImage;
+        prefetch.ready.catch(()=>{if(nextImage===prefetch)nextImage=null});
+      }
+    }
+
+    if(urls.length>1){
+      hero.after(controls);
+      const move=direction=>{
+        requested=(requested+direction+urls.length)%urls.length;
+        show(requested);
+      };
+      controls.firstElementChild.onclick=()=>move(-1);
+      controls.lastElementChild.onclick=()=>move(1);
+      moveGallery=move;
+    }
+    show(0,true);
   }catch{ /* Den vanliga produktbilden fungerar även utan bildlistan. */ }
 }
 function relatedProductContent(product){
