@@ -1849,8 +1849,7 @@ let activeProductIndex=0;
 function searchKey(value){
   return String(value==null?'':value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('sv-SE').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
 }
-function offers(){
-  const t=searchKey(q);
+function offerResults(t){
   const terms=t?t.split(' '):[];
   const offerData=DATA.filter(isOfferListing);
   const list=offerData.filter(o=>(cat==='Alla'||o.c===cat)&&(!hideMem||!o.m)&&terms.every(term=>(o.searchText||searchKey([o.s,o.n,o.c,o.u,o.cond].join(' '))).includes(term)));
@@ -1873,15 +1872,22 @@ function offers(){
     body=`<div class="grid">${sorted.slice(0,visibleOffers).map(card).join('')}</div>`;
     if(sorted.length>visibleOffers)body+='<button class="btn" data-more-offers>Visa fler erbjudanden</button>';
   }
-  const campaigns=t?[]:currentCampaigns();
-  const campaignColors=['linear-gradient(135deg,#2b2209,#6b5416)','linear-gradient(135deg,#1c1c20,#4a4a52)','linear-gradient(135deg,#3a1f12,#8a5a2b)','linear-gradient(135deg,#3b2f0a,#8f7222)'];
+  return {body,count:loading||err?'':list.length+' st'};
+}
+function campaignSection(){
+  const campaigns=currentCampaigns();
   const campaignContent=loading?'<div class="empty">Hämtar aktuella kampanjer…</div>':err?'<div class="empty">Kampanjerna kunde inte hämtas just nu.</div>':campaigns.length?campaigns.map((o,i)=>{const saved=Math.round((o.o-o.p)*100)/100;return `<button class="hc campaign-card" data-hero="${o.id}" aria-label="Visa kampanjen för ${esc(o.n)}"><span class="campaign-visual">${productVisual(o,i<2)}</span><span class="campaign-details"><span class="campaign-topline"><span class="campaign-store">${esc(o.s)}</span><small>−${pct(o)} %</small></span><b>${esc(o.n)}</b><span class="campaign-price"><strong>${kr(o.p)}</strong><span class="campaign-previous-price"><span class="previous-label">Tidigare pris</span><s>${kr(o.o)}</s></span></span><span class="campaign-saving">Du sparar ${kr(saved)}</span>${o.a?'<span class="affiliate-label">Annonslänk</span>':''}<span class="campaign-cta">Se erbjudandet <span aria-hidden="true">↗</span></span></span></button>`}).join(''):'<div class="empty">Inga rabatterade erbjudanden just nu.</div>';
-  return `${DEMO?'<div class="demo">Under uppbyggnad: erbjudandena nedan är exempel tills riktiga är på plats.</div>':''}${t?'':`<h2 class="campaign-title">Heta kampanjer just nu</h2><div class="hero">${campaignContent}</div>`}
-  <h2 class="offers-title">${t?'Sökresultat':'Aktiva erbjudanden'}<span class="n" aria-live="polite">${loading||err?'':list.length+' st'}</span></h2>
+  return `<h2 class="campaign-title">Heta kampanjer just nu</h2><div class="hero">${campaignContent}</div>`;
+}
+function offers(){
+  const t=searchKey(q);
+  const {body,count}=offerResults(t);
+  return `${DEMO?'<div class="demo">Under uppbyggnad: erbjudandena nedan är exempel tills riktiga är på plats.</div>':''}<div id="offer-campaigns">${t?'':campaignSection()}</div>
+  <h2 class="offers-title"><span id="offer-heading">${t?'Sökresultat':'Aktiva erbjudanden'}</span><span id="offer-count" class="n" aria-live="polite">${count}</span></h2>
   <div class="chips" role="group" aria-label="Kategorier">${CATS.map(c=>`<button class="chip" data-cat="${c}" aria-pressed="${c===cat}">${ICONS[c]?ICONS[c]+' ':''}${c}</button>`).join('')}</div>
   <div class="sort-row"><label for="offer-sort">Sortera</label><select id="offer-sort" aria-label="Sortera erbjudanden"><option value="recommended"${sortMode==='recommended'?' selected':''}>Rekommenderade</option><option value="cheapest"${sortMode==='cheapest'?' selected':''}>Billigaste först</option><option value="expensive"${sortMode==='expensive'?' selected':''}>Dyraste först</option><option value="newest"${sortMode==='newest'?' selected':''}>Senaste först</option><option value="discount"${sortMode==='discount'?' selected':''}>Störst rabatt först</option></select></div>
   <div class="sw"><button data-mem aria-pressed="${hideMem}" aria-label="Dölj erbjudanden som kräver medlemskap"></button>Dölj erbjudanden som kräver medlemskap</div>
-  ${body}`}
+  <div id="offer-results">${body}</div>`}
 
 function compare(){
   const gs=[...new Set(DATA.filter(o=>o.g).map(o=>o.g))];
@@ -1986,8 +1992,7 @@ function updateFavorite(id,animate=false){
   }
   updateFavoriteCounts();
 }
-function render(){
-  const mainEl=$('#main');mainEl.innerHTML={offers,compare,codes,list,rewards,adminRewards:rewardAdminPanel}[tab]();
+function observeMoreOffers(mainEl){
   moreObserver?.disconnect();
   const more=mainEl.querySelector('[data-more-offers]');
   if(more){
@@ -1999,6 +2004,22 @@ function render(){
       moreObserver.observe(more);
     }
   }
+}
+function updateSearchResults(){
+  if(tab!=='offers')return;
+  const t=searchKey(q);
+  const {body,count}=offerResults(t);
+  const campaigns=$('#offer-campaigns');
+  if(t)campaigns.replaceChildren();
+  else if(!campaigns.firstChild)campaigns.innerHTML=campaignSection();
+  $('#offer-heading').textContent=t?'Sökresultat':'Aktiva erbjudanden';
+  $('#offer-count').textContent=count;
+  $('#offer-results').innerHTML=body;
+  observeMoreOffers($('#main'));
+}
+function render(){
+  const mainEl=$('#main');mainEl.innerHTML={offers,compare,codes,list,rewards,adminRewards:rewardAdminPanel}[tab]();
+  observeMoreOffers(mainEl);
   if(anim){const sb=mainEl.querySelector('.stats b');if(sb&&DATA.length)countUp(sb,DATA.length)}
   anim=false;
   updateFavoriteCounts();
@@ -2135,7 +2156,7 @@ document.addEventListener('click',e=>{
   else if(d.mem!==undefined){hideMem=!hideMem;anim=true;render()}
   else if(d.cmp){const chips=document.querySelector('.chips');const chipsLeft=chips?chips.scrollLeft:0;cmp=d.cmp;anim=true;render();const nextChips=document.querySelector('.chips');if(nextChips)nextChips.scrollLeft=chipsLeft}
   else if(d.retry!==undefined){loadDeals()}
-  else if(d.clearSearch!==undefined){q='';$('#q').value='';anim=true;render();$('#q').focus()}
+  else if(d.clearSearch!==undefined){q='';$('#q').value='';clearTimeout(searchTimer);updateSearchResults();$('#q').focus()}
   else if(d.resetFilters!==undefined){cat='Alla';anim=true;render()}
   else if(d.showMembership!==undefined){hideMem=false;anim=true;render()}
   else if(d.login!==undefined){openAuth()}
@@ -2174,7 +2195,7 @@ $('#q').addEventListener('input',e=>{
   q=e.target.value;
   if(tab!=='offers')setActiveTab('offers');
   clearTimeout(searchTimer);
-  searchTimer=setTimeout(()=>{anim=false;render()},90);
+  searchTimer=setTimeout(updateSearchResults,90);
 });
 
 if(sb){
