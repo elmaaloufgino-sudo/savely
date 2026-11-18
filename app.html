@@ -1365,7 +1365,7 @@ function setActiveTab(nextTab){
   tab=nextTab;
   try{localStorage.setItem('fyndaren-active-tab',tab)}catch(e){}
 }
-let anim=true,popId=null,DATA=[],loading=true,err='',tab=readSavedTab(),cat='Alla',q='',hideMem=false,sortMode='recommended',cmp='',favs=new Set(),user=null,rewardSummary={available_points:0,pending_points:0,expiring_soon_points:0,next_expiry_at:null},rewardLoading=false,rewardError='',rewardHistory=[],rewardHistoryLoading=false,rewardHistoryError='',rewardCatalog=[],rewardCatalogLoading=false,rewardCatalogError='',rewardRedeemingId=null,rewardRedemptions=[],rewardRedemptionsLoading=false,rewardRedemptionsError='',isRewardAdmin=false,rewardAdminChecked=false,adminRedemptions=[],adminRedemptionsLoading=false,adminRedemptionsError='',adminRedemptionFilter='open',adminUpdatingId=null;
+let anim=true,DATA=[],loading=true,err='',tab=readSavedTab(),cat='Alla',q='',hideMem=false,sortMode='recommended',cmp='',favs=new Set(),user=null,rewardSummary={available_points:0,pending_points:0,expiring_soon_points:0,next_expiry_at:null},rewardLoading=false,rewardError='',rewardHistory=[],rewardHistoryLoading=false,rewardHistoryError='',rewardCatalog=[],rewardCatalogLoading=false,rewardCatalogError='',rewardRedeemingId=null,rewardRedemptions=[],rewardRedemptionsLoading=false,rewardRedemptionsError='',isRewardAdmin=false,rewardAdminChecked=false,adminRedemptions=[],adminRedemptionsLoading=false,adminRedemptionsError='',adminRedemptionFilter='open',adminUpdatingId=null;
 
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1691,7 +1691,7 @@ function productVisual(o,prioritize=false){
 }
 
 function offerBadge(o){const t=[o.cond||'',o.n||''].join(' ');if(/köp\s*minst\s*2[\s\S]{0,100}?få\s*25\s*%/i.test(t))return 'Köp 2 få 25%';const m=t.match(/(\d+)\s*för\s*(\d+(?:[,.]\d{1,2})?)\s*kr/i);return m?m[1]+' för '+m[2].replace('.',',')+' kr':null;}
-function card(o,index=99){const f=favs.has(o.id);const hasOldPrice=Number(o.o)>0;const sv=hasOldPrice?Math.round((o.o-o.p)*100)/100:null;return `<article class="card" data-product="${o.id}"><div class="tile" style="--tc:${colr(o.col)}"><span class="badge">${o.lc?'Last chance':(offerBadge(o)|| (o.s==='Kappahl'&&/2 för 299/i.test(o.n)?'2 för 299:-':(hasOldPrice?'-'+pct(o)+'%':'Erbjudande')))}</span><button type="button" class="fav ${f?'on':''} ${o.id===popId?'pop':''}" data-fav="${o.id}" onclick="event.preventDefault();event.stopPropagation();toggleFav(Number(this.dataset.fav));return false" aria-pressed="${f}" aria-label="${f?'Ta bort från sparlistan':'Spara i sparlistan'}">${heart}</button>${productVisual(o,index===0)}<span class="ptag">${kr(o.p)}</span></div><div class="info"><div class="store">${esc(o.s)}<span class="cat"> · ${esc(o.c)}</span></div><h3><a class="card-details" href="${esc(productPageUrl(o))}" data-card-details="${o.id}" aria-label="Öppna fyndsidan för ${esc(o.n)}">${esc(o.n)}</a></h3>${hasOldPrice?`<div class="price"><span class="previous-price"><small>Tidigare pris</small><s>${kr(o.o)}</s></span><span class="sv">Spara ${kr(sv)}</span></div>`:''}${o.u?`<div class="mute">Jmf: ${esc(o.u)}</div>`:''}${o.m?`<span class="mem">Kräver ${esc(o.m)}</span>`:''}${o.cond?`<div class="cond">${esc(o.cond)}</div>`:''}${o.e?`<div class="exp">${clock} ${esc(o.e)}</div>`:''}${o.k?`<div class="chk">Kontrollerad ${dm(o.k)}</div>`:''}${o.a?`<div class="go affiliate-go"><span class="affiliate-label">Annonslänk</span><a href="${esc(o.a)}" target="_blank" rel="sponsored nofollow noopener noreferrer">Till butiken ↗</a></div>`:(o.w?`<div class="go"><a class="pl" href="${esc(o.w)}" target="_blank" rel="noopener noreferrer">Till butiken ↗</a></div>`:`<div class="go"><button type="button" class="offer-cta" data-product-cta="${o.id}" aria-label="Visa erbjudandet för ${esc(o.n)}">Visa detaljer</button></div>`)}</div></article>`}
+function card(o,index=99){const f=favs.has(o.id);const hasOldPrice=Number(o.o)>0;const sv=hasOldPrice?Math.round((o.o-o.p)*100)/100:null;return `<article class="card" data-product="${o.id}"><div class="tile" style="--tc:${colr(o.col)}"><span class="badge">${o.lc?'Last chance':(offerBadge(o)|| (o.s==='Kappahl'&&/2 för 299/i.test(o.n)?'2 för 299:-':(hasOldPrice?'-'+pct(o)+'%':'Erbjudande')))}</span><button type="button" class="fav ${f?'on':''}" data-fav="${o.id}" onclick="event.preventDefault();event.stopPropagation();toggleFav(Number(this.dataset.fav));return false" aria-pressed="${f}" aria-label="${f?'Ta bort från sparlistan':'Spara i sparlistan'}">${heart}</button>${productVisual(o,index===0)}<span class="ptag">${kr(o.p)}</span></div><div class="info"><div class="store">${esc(o.s)}<span class="cat"> · ${esc(o.c)}</span></div><h3><a class="card-details" href="${esc(productPageUrl(o))}" data-card-details="${o.id}" aria-label="Öppna fyndsidan för ${esc(o.n)}">${esc(o.n)}</a></h3>${hasOldPrice?`<div class="price"><span class="previous-price"><small>Tidigare pris</small><s>${kr(o.o)}</s></span><span class="sv">Spara ${kr(sv)}</span></div>`:''}${o.u?`<div class="mute">Jmf: ${esc(o.u)}</div>`:''}${o.m?`<span class="mem">Kräver ${esc(o.m)}</span>`:''}${o.cond?`<div class="cond">${esc(o.cond)}</div>`:''}${o.e?`<div class="exp">${clock} ${esc(o.e)}</div>`:''}${o.k?`<div class="chk">Kontrollerad ${dm(o.k)}</div>`:''}${o.a?`<div class="go affiliate-go"><span class="affiliate-label">Annonslänk</span><a href="${esc(o.a)}" target="_blank" rel="sponsored nofollow noopener noreferrer">Till butiken ↗</a></div>`:(o.w?`<div class="go"><a class="pl" href="${esc(o.w)}" target="_blank" rel="noopener noreferrer">Till butiken ↗</a></div>`:`<div class="go"><button type="button" class="offer-cta" data-product-cta="${o.id}" aria-label="Visa erbjudandet för ${esc(o.n)}">Visa detaljer</button></div>`)}</div></article>`}
 
 let galleryRequest;
 let moveGallery=null;
@@ -1972,6 +1972,20 @@ function rewardAdminPanel(){
   return '<div class="admin-panel-head"><div><h2>🔒 Belöningar – Admin</h2><p class="admin-sub">Hantera inkomna inlösen säkert.</p></div><button class="admin-action admin-back" data-tab="rewards">Tillbaka</button></div><div class="admin-stats"><div class="admin-stat"><b>'+open.length+'</b><span>Öppna</span></div><div class="admin-stat"><b>'+processing.length+'</b><span>Behandlas</span></div><div class="admin-stat"><b>'+terminal.length+'</b><span>Avslutade</span></div></div><div class="admin-filters">'+Object.keys(filters).map(k=>'<button class="admin-filter '+(adminRedemptionFilter===k?'active':'')+'" data-admin-filter="'+k+'">'+filters[k]+'</button>').join('')+'</div>'+cards;
 }
 
+function updateFavoriteCounts(){
+  $('#cnt').textContent=favs.size;const nc=$('#navCnt');nc.textContent=favs.size;nc.hidden=!favs.size;
+}
+function updateFavorite(id,animate=false){
+  if(tab==='list'){render();return}
+  const saved=favs.has(id);
+  for(const button of document.querySelectorAll('[data-fav="'+id+'"]')){
+    button.classList.toggle('on',saved);
+    button.classList.toggle('pop',saved&&animate);
+    button.setAttribute('aria-pressed',String(saved));
+    button.setAttribute('aria-label',saved?'Ta bort från sparlistan':'Spara i sparlistan');
+  }
+  updateFavoriteCounts();
+}
 function render(){
   const mainEl=$('#main');mainEl.innerHTML={offers,compare,codes,list,rewards,adminRewards:rewardAdminPanel}[tab]();
   moreObserver?.disconnect();
@@ -1987,7 +2001,7 @@ function render(){
   }
   if(anim){const sb=mainEl.querySelector('.stats b');if(sb&&DATA.length)countUp(sb,DATA.length)}
   anim=false;
-  $('#cnt').textContent=favs.size;const nc=$('#navCnt');nc.textContent=favs.size;nc.hidden=!favs.size;
+  updateFavoriteCounts();
   document.querySelectorAll('nav button').forEach(b=>{if(b.dataset.tab===tab)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
 }
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('show'),2200)}
@@ -2036,7 +2050,7 @@ async function toggleFav(id){
   if(!sb||favPending.has(id))return;
   favPending.add(id);
   const had=favs.has(id);
-  had?favs.delete(id):favs.add(id);popId=had?null:id;render();popId=null;
+  had?favs.delete(id):favs.add(id);updateFavorite(id,!had);
   try{
     const r=had?await sb.from('favorites').delete().eq('deal_id',id).eq('user_id',user.id):await sb.from('favorites').insert({deal_id:id,user_id:user.id});
     if(r.error)throw r.error;
@@ -2044,7 +2058,7 @@ async function toggleFav(id){
   }catch(e){
     had?favs.add(id):favs.delete(id);
     toast('Det gick inte att uppdatera sparlistan. Försök igen.');
-    render();
+    updateFavorite(id);
   }finally{
     favPending.delete(id);
   }
