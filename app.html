@@ -1834,8 +1834,9 @@ function searchKey(value){
 }
 function offers(){
   const t=searchKey(q);
+  const terms=t?t.split(' '):[];
   const offerData=DATA.filter(isOfferListing);
-  const list=offerData.filter(o=>(cat==='Alla'||o.c===cat)&&(!hideMem||!o.m)&&(!t||(o.searchText||searchKey([o.s,o.n,o.c,o.u,o.cond].join(' '))).includes(t)));
+  const list=offerData.filter(o=>(cat==='Alla'||o.c===cat)&&(!hideMem||!o.m)&&terms.every(term=>(o.searchText||searchKey([o.s,o.n,o.c,o.u,o.cond].join(' '))).includes(term)));
   const sorted=sortMode==='recommended'?list:list.slice().sort((a,b)=>{
     if(sortMode==='cheapest')return (Number(a.p)||0)-(Number(b.p)||0);
     if(sortMode==='expensive')return (Number(b.p)||0)-(Number(a.p)||0);
@@ -1855,11 +1856,11 @@ function offers(){
     body=`<div class="grid">${sorted.slice(0,visibleOffers).map(card).join('')}</div>`;
     if(sorted.length>visibleOffers)body+='<button class="btn" data-more-offers>Visa fler erbjudanden</button>';
   }
-  const campaigns=currentCampaigns();
+  const campaigns=t?[]:currentCampaigns();
   const campaignColors=['linear-gradient(135deg,#2b2209,#6b5416)','linear-gradient(135deg,#1c1c20,#4a4a52)','linear-gradient(135deg,#3a1f12,#8a5a2b)','linear-gradient(135deg,#3b2f0a,#8f7222)'];
   const campaignContent=loading?'<div class="empty">Hämtar aktuella kampanjer…</div>':err?'<div class="empty">Kampanjerna kunde inte hämtas just nu.</div>':campaigns.length?campaigns.map((o,i)=>{const saved=Math.round((o.o-o.p)*100)/100;return `<button class="hc campaign-card" data-hero="${o.id}" aria-label="Visa kampanjen för ${esc(o.n)}"><span class="campaign-visual">${productVisual(o,i<2)}</span><span class="campaign-details"><span class="campaign-topline"><span class="campaign-kicker">UTVALD KAMPANJ</span><small>−${pct(o)} %</small></span><span class="campaign-store">${esc(o.s)}</span><b>${esc(o.n)}</b><span class="campaign-price"><strong>${kr(o.p)}</strong><span class="campaign-previous-price"><small>Tidigare pris</small><s>${kr(o.o)}</s></span></span><span class="campaign-saving">Du sparar ${kr(saved)}</span>${o.a?'<span class="affiliate-label">Annonslänk</span>':''}<span class="campaign-cta">Se erbjudandet <span aria-hidden="true">↗</span></span></span></button>`}).join(''):'<div class="empty">Inga rabatterade erbjudanden just nu.</div>';
-  return `${DEMO?'<div class="demo">Under uppbyggnad: erbjudandena nedan är exempel tills riktiga är på plats.</div>':'<div class="disc">Tidigare pris: butikens lägsta pris under de 30 dagarna före prissänkningen. Priser och villkor kan ändras. Kontrollera alltid pris och villkor hos butiken innan du handlar.</div>'}<h2 class="campaign-title">Heta kampanjer just nu</h2><div class="hero">${campaignContent}</div>
-  <h2 class="offers-title">Aktiva erbjudanden<span class="n" aria-live="polite">${loading||err?'':offerData.length+' st'}</span></h2>
+  return `${DEMO?'<div class="demo">Under uppbyggnad: erbjudandena nedan är exempel tills riktiga är på plats.</div>':t?'':'<div class="disc">Tidigare pris: butikens lägsta pris under de 30 dagarna före prissänkningen. Priser och villkor kan ändras. Kontrollera alltid pris och villkor hos butiken innan du handlar.</div>'}${t?'':`<h2 class="campaign-title">Heta kampanjer just nu</h2><div class="hero">${campaignContent}</div>`}
+  <h2 class="offers-title">${t?'Sökresultat':'Aktiva erbjudanden'}<span class="n" aria-live="polite">${loading||err?'':list.length+' st'}</span></h2>
   <div class="chips" role="group" aria-label="Kategorier">${CATS.map(c=>`<button class="chip" data-cat="${c}" aria-pressed="${c===cat}">${ICONS[c]?ICONS[c]+' ':''}${c}</button>`).join('')}</div>
   <div class="sort-row"><label for="offer-sort">Sortera</label><select id="offer-sort" aria-label="Sortera erbjudanden"><option value="recommended"${sortMode==='recommended'?' selected':''}>Rekommenderade</option><option value="cheapest"${sortMode==='cheapest'?' selected':''}>Billigaste först</option><option value="expensive"${sortMode==='expensive'?' selected':''}>Dyraste först</option><option value="newest"${sortMode==='newest'?' selected':''}>Senaste först</option><option value="discount"${sortMode==='discount'?' selected':''}>Störst rabatt först</option></select></div>
   <div class="sw"><button data-mem aria-pressed="${hideMem}" aria-label="Dölj erbjudanden som kräver medlemskap"></button>Dölj erbjudanden som kräver medlemskap</div>
