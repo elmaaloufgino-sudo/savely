@@ -75,6 +75,16 @@ const deals = rows.filter(deal => {
   return deal.id != null && deal.name && deal.store && Number.isFinite(price) && price > 0;
 });
 
+// Editorial price check from 18 November. Apply only to the verified offer terms.
+for (const deal of deals) {
+  if (Number(deal.id) === 423 && deal.store === "JYSK" &&
+      deal.name === "TRAPPEDAL hallmöbel, beige" && Number(deal.price) === 600 &&
+      Number(deal.old_price) === 1199 && deal.valid_to === "2026-11-29") {
+    if (!deal.checked_on || deal.checked_on < "2026-11-18") deal.checked_on = "2026-11-18";
+    deal.editorialDescription = "TRAPPEDAL hallmöbel i beige kostar 600 kr hos JYSK till och med 29 november. Spara 599 kr jämfört med lägsta pris de senaste 30 dagarna. Frakt kan tillkomma.";
+  }
+}
+
 const verifiedImageByDealId = {
   201: "https://media.apotea.se/product-images/XL/mittval-myfocus-100-tabletter-0.jpg",
   202: "https://media.apotea.se/product-images/XL/mittval-kvinna-100-tabletter-1-6.jpg",
@@ -109,7 +119,7 @@ function makePage(deal) {
     : String(deal.valid_until || "").trim();
   const checked = checkedOn ? "Senast kontrollerat " + dateLabel(checkedOn) : "";
   const conditions = String(deal.conditions || "").replace(/LAST_CHANCE_IMAGE/g, "").trim();
-  const description = [
+  const description = (!expired && deal.editorialDescription) || [
     deal.name + " hos " + deal.store + " för " + price + ".",
     expiry ? expiry + "." : "",
     checked ? checked + "." : ""
@@ -173,6 +183,7 @@ function makePage(deal) {
     previousPrice,
     deal.unit_text ? '<p class="info"><b>Jämförpris:</b> ' + html(deal.unit_text) + '</p>' : "",
     deal.membership ? '<p class="info"><b>Medlemskap:</b> ' + html(deal.membership) + '</p>' : "",
+    !expired && deal.editorialDescription ? '<p class="info">' + html(deal.editorialDescription) + '</p>' :
     conditions ? '<p class="info"><b>Villkor:</b> ' + html(conditions) + '</p>' : "",
     expiry ? '<p class="info"><b>Giltighet:</b> ' + html(expiry) + '</p>' : "",
     checked ? '<p class="info">' + html(checked) + '</p>' : "",
