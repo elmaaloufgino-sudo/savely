@@ -1835,9 +1835,11 @@ function openProduct(id,keepCarousel=false,trigger=null){
   const url=o.a||o.w;
   activeProductId=o.id;
   const cta=url?(o.a?'<span class="affiliate-label">Annonslänk</span>':'')+'<a class="product-cta" href="'+esc(url)+'" target="_blank" rel="'+(o.a?'sponsored nofollow noopener noreferrer':'noopener noreferrer')+'">Till butiken ↗</a>':'';
+  const pilotEligible=isRewardAdmin && /^spartoo(?: se)?$/i.test(o.s) && /^https:\/\/www\.awin1\.com\/pclick\.php\?p=\d+&a=3149456&m=27159$/.test(url);
+  const pilot=pilotEligible?'<button type="button" class="btn" data-spartoo-test="'+o.id+'">Testköp med poängspårning · endast admin</button><div role="status" data-pilot-status></div>':'';
   const carouselButtons=activeProductIds.length>1?'<button type="button" class="product-carousel-btn prev" data-product-prev aria-label="Föregående erbjudande" title="Föregående erbjudande">‹</button><button type="button" class="product-carousel-btn next" data-product-next aria-label="Nästa erbjudande" title="Nästa erbjudande">›</button>':'';
   const shareButton='<button type="button" class="product-share" data-share-product="'+o.id+'">Dela detta fynd ↗</button>';
-  $('#modal').innerHTML='<div class="modal product-modal" data-product-close><section class="sheet product-sheet" role="dialog" aria-modal="true" aria-labelledby="product-dialog-title"><button type="button" class="product-close" data-product-close aria-label="Stäng produktdetaljer">×</button><div class="product-hero'+(/apoteket/i.test(o.s)?' apoteket-hero':'')+'" style="--tc:'+colr(o.col)+'"><span class="product-detail-discount">'+(o.lc?'Last chance':(offerBadge(o)||(hasOldPrice?('-'+pct(o)+'%'):'Erbjudande')))+'</span>'+image+carouselButtons+'</div><div class="product-store">'+esc(o.s)+' · '+esc(o.c)+'</div><h2 class="product-name" id="product-dialog-title">'+esc(o.n)+'</h2><div class="product-price"><strong>'+kr(o.p)+'</strong>'+(hasOldPrice?'<s>'+kr(o.o)+'</s><span class="product-saving">Spara '+kr(sv)+' ('+pct(o)+'%)</span>':(offerBadge(o)?'<span class="product-saving">'+offerBadge(o)+'</span>':''))+'</div><div class="product-details">'+details+'</div>'+shareButton+cta+'<div class="related-products">'+relatedProductContent(o)+'</div></section></div>';
+  $('#modal').innerHTML='<div class="modal product-modal" data-product-close><section class="sheet product-sheet" role="dialog" aria-modal="true" aria-labelledby="product-dialog-title"><button type="button" class="product-close" data-product-close aria-label="Stäng produktdetaljer">×</button><div class="product-hero'+(/apoteket/i.test(o.s)?' apoteket-hero':'')+'" style="--tc:'+colr(o.col)+'"><span class="product-detail-discount">'+(o.lc?'Last chance':(offerBadge(o)||(hasOldPrice?('-'+pct(o)+'%'):'Erbjudande')))+'</span>'+image+carouselButtons+'</div><div class="product-store">'+esc(o.s)+' · '+esc(o.c)+'</div><h2 class="product-name" id="product-dialog-title">'+esc(o.n)+'</h2><div class="product-price"><strong>'+kr(o.p)+'</strong>'+(hasOldPrice?'<s>'+kr(o.o)+'</s><span class="product-saving">Spara '+kr(sv)+' ('+pct(o)+'%)</span>':(offerBadge(o)?'<span class="product-saving">'+offerBadge(o)+'</span>':''))+'</div><div class="product-details">'+details+'</div>'+shareButton+cta+pilot+'<div class="related-products">'+relatedProductContent(o)+'</div></section></div>';
   attachGallery(o);
   if(!productHistoryEntryActive){
     const currentState=history.state&&typeof history.state==='object'?history.state:{};
@@ -2124,13 +2126,13 @@ function rewardCatalogItem(r){
 }
 
 function rewards(){
-  if(!user)return `<h2>🏆 Fyndaren Belöningar</h2><div class="rewards-hero"><div class="rewards-kicker">Medlemsförmån</div><div class="rewards-points">Kommer snart</div><div class="rewards-value">Logga in eller skapa ett konto för att vara redo när Fyndaren Belöningar lanseras.</div></div><div class="reward-coming"><b>Handla smart. Belönas för det.</b>Poäng kommer att tjänas på kvalificerade och godkända köp via Fyndaren. Poängen kan användas till rabatter, presenter och presentkort.</div><button class="btn" data-login>Logga in</button></div>`;
+  if(!user)return `<h2>🏆 Fyndaren Belöningar</h2><div class="rewards-hero"><div class="rewards-kicker">Medlemsförmån</div><div class="rewards-points">Kommer snart</div><div class="rewards-value">Logga in eller skapa ett konto för att vara redo när Fyndaren Belöningar lanseras.</div></div><div class="reward-coming"><b>Poäng på utvalda köp</b>Först ut är utvalda erbjudanden från Spartoo. När vi öppnar kan du samla poäng på godkända köp. 2 500 poäng ger 25 kr i belöningsvärde.</div><button class="btn" data-login>Logga in</button></div>`;
   if(rewardLoading)return `<h2>🏆 Mina Belöningar</h2><div class="empty"><b>Hämtar dina belöningar…</b></div>`;
   const available=rewardSummary.available_points||0,pending=rewardSummary.pending_points||0,expiring=rewardSummary.expiring_soon_points||0;
   const progress=Math.min(100,Math.round((available/2500)*100));
   const value=(available/100).toLocaleString('sv-SE',{minimumFractionDigits:2,maximumFractionDigits:2});
   const expiry=rewardSummary.next_expiry_at?new Date(rewardSummary.next_expiry_at).toLocaleDateString('sv-SE',{day:'numeric',month:'short',year:'numeric'}):'Inga poäng har utgångsdatum ännu';
-  const status=rewardError?'<div class="reward-coming"><b>⚠️ Tillfälligt problem</b>'+esc(rewardError)+'</div>':'<div class="reward-coming"><b>Belöningar kommer snart</b>Här kommer du att kunna följa poäng, se historik och lösa in rabatter, presenter och presentkort. Riktiga poäng aktiveras först när affiliateköp kan verifieras.</div>';
+  const status=rewardError?'<div class="reward-coming"><b>⚠️ Tillfälligt problem</b>'+esc(rewardError)+'</div>':'<div class="reward-coming"><b>Belöningar kommer snart</b>Först ut är utvalda erbjudanden från Spartoo. När vi öppnar kan du samla poäng på godkända köp. 2 500 poäng ger 25 kr i belöningsvärde.</div>';
   const history=rewardHistoryLoading?'<div class="reward-empty">Hämtar historik…</div>':rewardHistoryError?'<div class="reward-empty">'+esc(rewardHistoryError)+'</div>':rewardHistory.length?rewardHistory.map(rewardHistoryItem).join(''):'<div class="reward-empty">Din poänghistorik är tom. När kvalificerade köp börjar ge poäng visas de här.</div>';
   const redemptions=rewardRedemptionsLoading?'<div class="reward-empty">Hämtar dina inlösen…</div>':rewardRedemptionsError?'<div class="reward-empty">'+esc(rewardRedemptionsError)+'</div>':rewardRedemptions.length?rewardRedemptions.map(rewardRedemptionItem).join(''):'<div class="reward-empty">Du har ännu inte löst in någon belöning.</div>';
   const catalog=rewardCatalogLoading?'<div class="reward-empty">Hämtar belöningar…</div>':rewardCatalogError?'<div class="reward-empty">'+esc(rewardCatalogError)+'</div>':rewardCatalog.length?rewardCatalog.map(rewardCatalogItem).join(''):'<div class="reward-empty"><b>Belöningskatalogen fylls snart på.</b><br>Rabatter, presenter och presentkort visas här när de aktiveras.</div>';
@@ -2290,6 +2292,20 @@ async function toggleFav(id){
   }
 }
 
+document.addEventListener('click',async e=>{
+  const button=e.target.closest('[data-spartoo-test]');
+  if(!button || button.disabled)return;
+  button.disabled=true;
+  try{
+    const {data,error}=await sb.rpc('start_spartoo_pilot',{p_deal_id:Number(button.dataset.spartooTest)});
+    if(error || !/^https:\/\/www\.awin1\.com\/pclick\.php\?/.test(data))throw new Error();
+    location.assign(data);
+  }catch{
+    const status=button.parentElement?.querySelector('[data-pilot-status]');
+    if(status)status.textContent='Testlänken kunde inte skapas. Försök igen.';
+    button.disabled=false;
+  }
+});
 document.addEventListener('click',async e=>{
   const btn=e.target.closest('[data-redeem]');
   if(!btn||btn.disabled)return;
