@@ -2023,16 +2023,62 @@ function offers(){
   <div class="sw"><button data-mem aria-pressed="${hideMem}" aria-label="Dölj erbjudanden som kräver medlemskap"></button>Dölj erbjudanden som kräver medlemskap</div>
   <div id="offer-results">${body}</div>`}
 
+function comparisonKey(value){
+  return String(value||'').normalize('NFC').toLocaleLowerCase('sv-SE').trim().replace(/\s+/g,' ');
+}
+function comparisonGroups(offers,today){
+  const unitGroups=new Map(),productGroups=new Map();
+  function add(map,key,label,o,amount){
+    if(!map.has(key))map.set(key,{key,label,rows:new Map()});
+    const rows=map.get(key).rows;
+    const store=comparisonKey(o.s);
+    const previous=rows.get(store);
+    if(!previous||amount<previous.amount||(amount===previous.amount&&o.p<previous.o.p)){
+      rows.set(store,{o,amount});
+    }
+  }
+  for(const o of offers){
+    if((o.vt&&o.vt<today)||!comparisonKey(o.s)||!comparisonKey(o.n)||!Number.isFinite(o.p)||o.p<=0)continue;
+    const unit=String(o.u||'').match(/kr\s*\/\s*(kg|hg|g|ml|cl|dl|liter|l|st(?:yck)?|meter|m)\b/i);
+    if(comparisonKey(o.g)&&unit&&Number.isFinite(o.uv)&&o.uv>0){
+      const basis=unit[1].toLowerCase().replace(/^liter$/,'l').replace(/^styck$/,'st').replace(/^meter$/,'m');
+      add(unitGroups,JSON.stringify([comparisonKey(o.g),basis]),o.g.trim()+' · kr/'+basis,o,o.uv);
+    }
+    const name=comparisonKey(o.n);
+    if(name.split(' ').length>=2&&/[a-zåäö]{3}/i.test(name)&&/\d/.test(name)){
+      add(productGroups,JSON.stringify([comparisonKey(o.c),name]),o.n.trim(),o,o.p);
+    }
+  }
+  const groups=[];
+  const covered=new Set();
+  for(const group of unitGroups.values()){
+    if(group.rows.size<2)continue;
+    groups.push({...group,unit:true});
+    for(const {o} of group.rows.values())covered.add(o.id);
+  }
+  for(const group of productGroups.values()){
+    if(group.rows.size>=2&&![...group.rows.values()].every(row=>covered.has(row.o.id))){
+      groups.push({...group,key:'produkt'+group.key,unit:false});
+    }
+  }
+  return groups.sort((a,b)=>a.label.localeCompare(b.label,'sv'));
+}
 function compare(){
-  const gs=[...new Set(DATA.filter(o=>o.g).map(o=>o.g))];
-  if(!gs.length)return `<h2>Jämför priser</h2><div class="empty"><b>${loading?'Hämtar…':'Inget att jämföra ännu'}</b></div>`;
-  if(!gs.includes(cmp))cmp=gs[0];
-  const items=DATA.filter(o=>o.g===cmp&&Number.isFinite(o.uv)).sort((a,b)=>a.uv-b.uv);
-  if(!items.length)return `<h2>Jämför priser</h2><div class="chips" style="margin-top:0" role="group" aria-label="Produkter">${gs.map(g=>`<button class="chip" data-cmp="${esc(g)}" aria-pressed="${g===cmp}">${esc(g)}</button>`).join('')}</div><div class="empty"><b>Inga jämförpriser tillgängliga</b>Det finns inga jämförpriser för den här produktgruppen just nu.</div>`;
-  const best=items[0].uv;
-  return `<h2>Jämför priser</h2><div class="chips" style="margin-top:0" role="group" aria-label="Produkter">${gs.map(g=>`<button class="chip" data-cmp="${esc(g)}" aria-pressed="${g===cmp}">${esc(g)}</button>`).join('')}</div>
-  <h2 style="font-size:15px;color:var(--mute);font-weight:600">Lägst jämförpris överst</h2>
-  ${items.map((o,i)=>`<div class="row ${i?'':'best'}"><div class="logo" style="background:${colr(o.col)}">${esc(o.l)}</div><div class="t"><b>${esc(o.s)}: ${kr(o.p)}</b><span>${esc(o.n)} · ${esc(o.u)}${o.m?' · kräver '+esc(o.m):''}</span></div>${i?`<span class="mute">+${Math.round((o.uv/best-1)*100)} %</span>`:'<span class="tag">Billigast</span>'}</div>`).join('')}`}
+  const groups=comparisonGroups(DATA,todayISO());
+  const title='<h2>Jämför priser</h2>';
+  if(!groups.length){
+    if(loading||dealsInFlight)return title+'<div class="empty" role="status">Hämtar jämförbara priser…</div>';
+    if(err)return title+'<div class="empty">Alla priser kunde inte hämtas.<button class="btn" data-retry>Försök igen</button></div>';
+    return title+'<p class="disc">Just nu saknas jämförbara priser från två butiker.</p><button class="btn" data-tab="offers">Visa erbjudanden</button>';
+  }
+  const selected=groups.find(group=>group.key===cmp)||groups[0];
+  cmp=selected.key;
+  const items=[...selected.rows.values()].sort((a,b)=>a.amount-b.amount);
+  const best=items[0].amount;
+  return title+`<div class="chips" style="margin-top:0" role="group" aria-label="Produkter">${groups.map(group=>`<button class="chip" data-cmp="${esc(group.key)}" aria-pressed="${group===selected}">${esc(group.label)}</button>`).join('')}</div>
+  <h2 style="font-size:15px;color:var(--mute);font-weight:600">${selected.unit?'Lägst jämförpris överst':'Lägst produktpris överst'}</h2>
+  ${items.map(({o,amount})=>`<div class="row ${amount===best?'best':''}"><div class="logo" style="background:${colr(o.col)}">${esc(o.l)}</div><div class="t"><b>${esc(o.s)}: ${kr(o.p)}</b><span>${esc(o.n)}${o.u?' · '+esc(o.u):''}${o.m?' · kräver '+esc(o.m):''}</span></div>${amount===best?'<span class="tag">Billigast</span>':`<span class="mute">+${Math.round((amount/best-1)*100)} %</span>`}</div>`).join('')}`;
+}
 
 function codes(){
   if(codesState==='error')return '<h2>Rabattkoder</h2><div class="empty">Kunde inte hämta rabattkoderna.<button class="btn" data-retry-codes>Försök igen</button></div>';
