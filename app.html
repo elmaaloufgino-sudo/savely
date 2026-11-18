@@ -1381,23 +1381,41 @@ async function loadCodes(){
     if(tab==='codes')render();
   }
 }
+const offerBatchSize=24;
+let visibleOffers=offerBatchSize, offerView='', pendingOffers=[];
+let moreObserver;
+function appendOffers(){
+  const button=document.querySelector('[data-more-offers]');
+  if(!button)return;
+  const next=pendingOffers.slice(visibleOffers,visibleOffers+offerBatchSize);
+  button.previousElementSibling.insertAdjacentHTML('beforeend',next.map((offer,i)=>card(offer,visibleOffers+i)).join(''));
+  visibleOffers+=next.length;
+  if(visibleOffers>=pendingOffers.length)button.remove();
+}
 async function loadDeals(){
   loading=true;err='';render();
   try{
     if(!sb)throw new Error('supabase');
-    const pageSize=1000;
-    const allDeals=[];
-    for(let from=0;;from+=pageSize){
-      const {data,error}=await sb.from('deals')
-        .select('*')
-        .order('id',{ascending:false})
-        .range(from,from+pageSize-1);
+    let cursor=null, first=true;
+    const active=[];
+    while(true){
+      const limit=first?offerBatchSize:1000;
+      let request=sb.from('deals').select('*').order('id',{ascending:false});
+      if(cursor!==null)request=request.lt('id',cursor);
+      const {data,error}=await request.limit(limit);
       if(error)throw error;
-      const page=Array.isArray(data)?data:[];
-      allDeals.push(...page);
-      if(page.length<pageSize)break;
+      active.push(...data.map(norm).filter(o=>!o.vt||o.vt>=todayISO()));
+      if(data.length<limit)break;
+      cursor=data[data.length-1].id;
+      if(first && active.some(isOfferListing)){
+        DATA=active.slice();
+        loading=false;
+        render();
+        document.documentElement.classList.add('deals-ready');
+      }
+      first=false;
     }
-    DATA=allDeals.map(norm).filter(o=>!o.vt||o.vt>=todayISO());
+    DATA=active;
   }catch(e){
     err='Kunde inte hämta erbjudanden. Kontrollera din anslutning och försök igen.';
   }
@@ -1746,7 +1764,14 @@ function offers(){
   if(loading)body='<div class="grid" aria-busy="true" aria-label="Hämtar erbjudanden">'+'<div class="card skel"></div>'.repeat(4)+'</div>';
   else if(err)body=`<div class="empty"><b>Något gick fel</b>${esc(err)}<button class="btn" data-retry>Försök igen</button></div>`;
   else if(!list.length)body=`<div class="empty"><b>Inga träffar</b>${t?'Vi hittade inga erbjudanden som matchar din sökning.':'Det finns inga erbjudanden i den här vyn just nu.'}<div class="empty-actions">${t?'<button class="btn" data-clear-search>Rensa sökning</button>':''}${cat!=='Alla'?'<button class="btn ghost" data-reset-filters>Visa alla kategorier</button>':''}${hideMem?'<button class="btn ghost" data-show-membership>Visa även medlemspriser</button>':''}</div></div>`;
-  else body=`<div class="grid">${sorted.map(card).join('')}</div>`;
+  else {
+    const view=JSON.stringify([q,cat,hideMem,sortMode]);
+    if(view!==offerView)visibleOffers=offerBatchSize;
+    offerView=view;
+    pendingOffers=sorted;
+    body=`<div class="grid">${sorted.slice(0,visibleOffers).map(card).join('')}</div>`;
+    if(sorted.length>visibleOffers)body+='<button class="btn" data-more-offers>Visa fler erbjudanden</button>';
+  }
   const campaigns=currentCampaigns();
   const campaignColors=['linear-gradient(135deg,#2b2209,#6b5416)','linear-gradient(135deg,#1c1c20,#4a4a52)','linear-gradient(135deg,#3a1f12,#8a5a2b)','linear-gradient(135deg,#3b2f0a,#8f7222)'];
   const campaignContent=loading?'<div class="empty">Hämtar aktuella kampanjer…</div>':err?'<div class="empty">Kampanjerna kunde inte hämtas just nu.</div>':campaigns.length?campaigns.map((o,i)=>{const saved=Math.round((o.o-o.p)*100)/100;return `<button class="hc campaign-card" data-hero="${o.id}" aria-label="Visa kampanjen för ${esc(o.n)}"><span class="campaign-visual">${productVisual(o,i<2)}</span><span class="campaign-details"><span class="campaign-topline"><span class="campaign-kicker">UTVALD KAMPANJ</span><small>−${pct(o)} %</small></span><span class="campaign-store">${esc(o.s)}</span><b>${esc(o.n)}</b><span class="campaign-price"><strong>${kr(o.p)}</strong><span class="campaign-previous-price"><small>Tidigare pris</small><s>${kr(o.o)}</s></span></span><span class="campaign-saving">Du sparar ${kr(saved)}</span><span class="campaign-cta">Se erbjudandet <span aria-hidden="true">↗</span></span></span></button>`}).join(''):'<div class="empty">Inga rabatterade erbjudanden just nu.</div>';
@@ -1848,6 +1873,17 @@ function rewardAdminPanel(){
 
 function render(){
   const mainEl=$('#main');mainEl.innerHTML={offers,compare,codes,list,rewards,adminRewards:rewardAdminPanel}[tab]();
+  moreObserver?.disconnect();
+  const more=mainEl.querySelector('[data-more-offers]');
+  if(more){
+    more.onclick=appendOffers;
+    if('IntersectionObserver' in window){
+      moreObserver=new IntersectionObserver(entries=>{
+        if(entries.some(entry=>entry.isIntersecting && entry.target===mainEl.querySelector('[data-more-offers]')))appendOffers();
+      },{rootMargin:'300px'});
+      moreObserver.observe(more);
+    }
+  }
   if(anim){const sb=mainEl.querySelector('.stats b');if(sb&&DATA.length)countUp(sb,DATA.length)}
   anim=false;
   $('#cnt').textContent=favs.size;const nc=$('#navCnt');nc.textContent=favs.size;nc.hidden=!favs.size;
