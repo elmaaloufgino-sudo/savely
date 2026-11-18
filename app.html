@@ -1424,12 +1424,18 @@ function appendOffers(){
   visibleOffers+=next.length;
   if(visibleOffers>=pendingOffers.length)button.remove();
 }
+let dealsInFlight=false;
+let resumeDeals=null;
 async function loadDeals(){
-  loading=true;err='';render();
+  if(dealsInFlight)return;
+  dealsInFlight=true;
+  const active=resumeDeals?.active||[];
+  let cursor=resumeDeals?.cursor??null;
+  let first=cursor===null;
+  loading=!active.some(isOfferListing);
+  err='';render();
   try{
     if(!sb)throw new Error('supabase');
-    let cursor=null, first=true;
-    const active=[];
     while(true){
       const limit=first?offerBatchSize:1000;
       let request=sb.from('deals').select('*').order('id',{ascending:false});
@@ -1447,13 +1453,17 @@ async function loadDeals(){
       }
       first=false;
     }
+    resumeDeals=null;
     DATA=active;
     const relatedPanel=document.querySelector("#modal .related-products");
     const opened=relatedPanel&&DATA.find(item=>item.id===activeProductId);
     if(opened)relatedPanel.innerHTML=relatedProductContent(opened);
   }catch(e){
+    resumeDeals={active,cursor};
+    DATA=active.slice();
     err='Kunde inte hämta erbjudanden. Kontrollera din anslutning och försök igen.';
   }
+  dealsInFlight=false;
   loading=false;
   anim=true;render();
   document.documentElement.classList.add('deals-ready');
@@ -1875,7 +1885,7 @@ function offerResults(t){
   });
   let body;
   if(loading)body='<div class="grid" aria-busy="true" aria-label="Hämtar erbjudanden">'+'<div class="card skel"></div>'.repeat(4)+'</div>';
-  else if(err)body=`<div class="empty"><b>Något gick fel</b>${esc(err)}<button class="btn" data-retry>Försök igen</button></div>`;
+  else if(err&&!offerData.length)body=`<div class="empty"><b>Något gick fel</b>${esc(err)}<button class="btn" data-retry>Försök igen</button></div>`;
   else if(!list.length)body=`<div class="empty"><b>Inga träffar</b>${t?'Vi hittade inga erbjudanden som matchar din sökning.':'Det finns inga erbjudanden i den här vyn just nu.'}<div class="empty-actions">${t?'<button class="btn" data-clear-search>Rensa sökning</button>':''}${cat!=='Alla'?'<button class="btn ghost" data-reset-filters>Visa alla kategorier</button>':''}${hideMem?'<button class="btn ghost" data-show-membership>Visa även medlemspriser</button>':''}</div></div>`;
   else {
     const view=JSON.stringify([q,cat,hideMem,sortMode]);
@@ -1885,11 +1895,14 @@ function offerResults(t){
     body=`<div class="grid">${sorted.slice(0,visibleOffers).map(card).join('')}</div>`;
     if(sorted.length>visibleOffers)body+='<button class="btn" data-more-offers>Visa fler erbjudanden</button>';
   }
-  return {body,count:loading||err?'':list.length+' st'};
+  if(err&&offerData.length){
+    body='<div class="disc" role="status">En del erbjudanden har laddats. <button class="btn ghost" data-retry>Hämta resten</button></div>'+body;
+  }
+  return {body,count:loading||(err&&!offerData.length)?'':list.length+' st'};
 }
 function campaignSection(){
   const campaigns=currentCampaigns();
-  const campaignContent=loading?'<div class="empty">Hämtar aktuella kampanjer…</div>':err?'<div class="empty">Kampanjerna kunde inte hämtas just nu.</div>':campaigns.length?campaigns.map((o,i)=>{const saved=Math.round((o.o-o.p)*100)/100;return `<button class="hc campaign-card" data-hero="${o.id}" aria-label="Visa kampanjen för ${esc(o.n)}"><span class="campaign-visual">${productVisual(o,i<2)}</span><span class="campaign-details"><span class="campaign-topline"><span class="campaign-store">${esc(o.s)}</span><small>−${pct(o)} %</small></span><b>${esc(o.n)}</b><span class="campaign-price"><strong>${kr(o.p)}</strong><span class="campaign-previous-price"><span class="previous-label">Tidigare pris</span><s>${kr(o.o)}</s></span></span><span class="campaign-saving">Du sparar ${kr(saved)}</span>${o.a?'<span class="affiliate-label">Annonslänk</span>':''}<span class="campaign-cta">Se erbjudandet <span aria-hidden="true">↗</span></span></span></button>`}).join(''):'<div class="empty">Inga rabatterade erbjudanden just nu.</div>';
+  const campaignContent=loading?'<div class="empty">Hämtar aktuella kampanjer…</div>':err&&!campaigns.length?'<div class="empty">Kampanjerna kunde inte hämtas just nu.</div>':campaigns.length?campaigns.map((o,i)=>{const saved=Math.round((o.o-o.p)*100)/100;return `<button class="hc campaign-card" data-hero="${o.id}" aria-label="Visa kampanjen för ${esc(o.n)}"><span class="campaign-visual">${productVisual(o,i<2)}</span><span class="campaign-details"><span class="campaign-topline"><span class="campaign-store">${esc(o.s)}</span><small>−${pct(o)} %</small></span><b>${esc(o.n)}</b><span class="campaign-price"><strong>${kr(o.p)}</strong><span class="campaign-previous-price"><span class="previous-label">Tidigare pris</span><s>${kr(o.o)}</s></span></span><span class="campaign-saving">Du sparar ${kr(saved)}</span>${o.a?'<span class="affiliate-label">Annonslänk</span>':''}<span class="campaign-cta">Se erbjudandet <span aria-hidden="true">↗</span></span></span></button>`}).join(''):'<div class="empty">Inga rabatterade erbjudanden just nu.</div>';
   return `<h2 class="campaign-title">Heta kampanjer just nu</h2><div class="hero">${campaignContent}</div>`;
 }
 function offers(){
