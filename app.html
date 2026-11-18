@@ -1908,11 +1908,69 @@ let activeProductIndex=0;
 function searchKey(value){
   return String(value==null?'':value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('sv-SE').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
 }
+const featuredOfferLimit=8;
+const featuredCategoryOrder=CATS.slice(1).map(category=>({category,order:Math.random()}))
+  .sort((a,b)=>a.order-b.order).map(entry=>entry.category);
+const featuredOfferWeights=new Map();
+let featuredOfferData;
+const recommendedOffersByMembership=new Map();
+
+function recommendedStartOffers(list){
+  if(featuredOfferData!==DATA){
+    featuredOfferData=DATA;
+    recommendedOffersByMembership.clear();
+  }
+  if(recommendedOffersByMembership.has(hideMem))return recommendedOffersByMembership.get(hideMem);
+
+  const ranked=list.filter(offer=>featuredCategoryOrder.includes(offer.c)&&offer.s&&offer.n&&
+    (offer.a||offer.w)&&Number(offer.p)>0&&Number(offer.o)>Number(offer.p))
+    .sort((a,b)=>pct(b)-pct(a)||String(b.k||'').localeCompare(String(a.k||'')));
+  const selected=[],ids=new Set(),shops=new Set(),names=new Set();
+  const shop=offer=>searchKey(offer.s);
+  const name=offer=>searchKey(offer.n);
+  function promote(offer){
+    if(!offer)return;
+    selected.push(offer);
+    ids.add(offer.id);
+    shops.add(shop(offer));
+    names.add(name(offer));
+  }
+
+  for(const category of featuredCategoryOrder){
+    const candidates=[],seen=new Set();
+    for(const offer of ranked){
+      if(offer.c!==category||seen.has(name(offer))||names.has(name(offer)))continue;
+      if(candidates.length&&pct(candidates[0])>=25&&pct(offer)<25)break;
+      seen.add(name(offer));
+      if(!featuredOfferWeights.has(offer.id))featuredOfferWeights.set(offer.id,Math.random());
+      candidates.push(offer);
+      if(candidates.length===5)break;
+    }
+    candidates.sort((a,b)=>Number(shops.has(shop(a)))-Number(shops.has(shop(b)))||
+      featuredOfferWeights.get(a.id)-featuredOfferWeights.get(b.id));
+    promote(candidates[0]);
+  }
+
+  while(selected.length<featuredOfferLimit){
+    const remaining=ranked.filter(offer=>!ids.has(offer.id)&&!names.has(name(offer)));
+    const strong=remaining.filter(offer=>pct(offer)>=25);
+    const candidates=strong.length?strong:remaining;
+    const next=candidates.find(offer=>!shops.has(shop(offer)))||candidates[0];
+    if(!next)break;
+    promote(next);
+  }
+  const ordered=selected.concat(list.filter(offer=>!ids.has(offer.id)));
+  recommendedOffersByMembership.set(hideMem,ordered);
+  return ordered;
+}
+
 function offerResults(t){
   const terms=t?t.split(' '):[];
   const offerData=DATA.filter(isOfferListing);
   const list=offerData.filter(o=>(cat==='Alla'||o.c===cat)&&(!hideMem||!o.m)&&terms.every(term=>(o.searchText||searchKey([o.s,o.n,o.c,o.u,o.cond].join(' '))).includes(term)));
-  const sorted=sortMode==='recommended'?list:list.slice().sort((a,b)=>{
+  let sorted=list;
+  if(sortMode==='recommended'&&cat==='Alla'&&!t)sorted=recommendedStartOffers(list);
+  else if(sortMode!=='recommended')sorted=list.slice().sort((a,b)=>{
     if(sortMode==='cheapest')return (Number(a.p)||0)-(Number(b.p)||0);
     if(sortMode==='expensive')return (Number(b.p)||0)-(Number(a.p)||0);
     if(sortMode==='newest')return String(b.k||'').localeCompare(String(a.k||''))||(Number(b.id)||0)-(Number(a.id)||0);
