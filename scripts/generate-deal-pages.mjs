@@ -117,11 +117,27 @@ function relatedOffers(deal, byCategory) {
   return '<section class="related">' + (cards.length ? '<h2>Fler fynd i samma kategori</h2>' + cards.join("") : "") + link + '</section>';
 }
 
+function undatedPage(deal, canonical) {
+  const title = html(deal.name + " hos " + deal.store);
+  return [
+    '<!doctype html><html lang="sv"><head><meta charset="utf-8">',
+    '<meta name="viewport" content="width=device-width,initial-scale=1">',
+    '<meta name="robots" content="noindex,follow">',
+    '<link rel="canonical" href="' + html(canonical) + '">',
+    '<title>' + title + ' | Fyndaren</title>',
+    '<style>body{margin:0;background:#141418;color:#f3f3f5;font:1rem/1.6 system-ui}main{max-width:38rem;margin:auto;padding:3rem 1.5rem}a{color:#e6ca65}h1{line-height:1.2}</style></head>',
+    '<body><main><a href="/">Fyndaren</a><h1>' + title + '</h1>',
+    '<p>Erbjudandet visas inte längre. Det saknar ett bekräftat slutdatum.</p>',
+    '<a href="/fynd/">Se aktuella erbjudanden</a></main></body></html>'
+  ].join("\n");
+}
+
 function makePage(deal, byCategory) {
   const id = Number(deal.id);
   const slug = slugify(deal.store + " " + deal.name) + "-" + id;
   const canonical = BASE_URL + "/fynd/" + slug + "/";
   const validTo = validDate(deal.valid_to);
+  if (!validTo) return undatedPage(deal, canonical);
   const checkedOn = validDate(deal.checked_on);
   const expired = !!validTo && validTo < today;
   const recentlyChecked = !!checkedOn && checkedOn <= today && checkedOn >= freshnessCutoff;
@@ -324,7 +340,7 @@ for (const deal of deals) {
   const checkedOn = validDate(deal.checked_on);
   const expired = !!validTo && validTo < today;
   const recentlyChecked = !!checkedOn && checkedOn <= today && checkedOn >= freshnessCutoff;
-  if (!expired && recentlyChecked) {
+  if (validTo && !expired && recentlyChecked) {
     sitemapUrls.push(BASE_URL + "/fynd/" + slug + "/");
     catalogDeals.add(deal);
   }
