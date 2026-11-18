@@ -1353,7 +1353,7 @@ function currentCampaigns(){
   return selected;
 }
 const DEMO=false; // true visar rutan 'under uppbyggnad / exempel'
-let CODES=[],codesLoading=true;
+let CODES=[],codesState='idle';
 const CATS=['Alla','Mat & Dryck','Skönhet & Personlig vård','Hem & Inredning','Elektronik','Apotek','Kläder','Bygg & Hemmafix'];
 const ICONS={'Mat & Dryck':'🥗','Skönhet & Personlig vård':'✨','Hem & Inredning':'🛋️',Elektronik:'📱',Apotek:'💊',Kläder:'👕','Bygg & Hemmafix':'🛠️'};
 const VALID_TABS=['offers','compare','codes','list','rewards','adminRewards'];
@@ -1363,6 +1363,7 @@ function readSavedTab(){
 function setActiveTab(nextTab){
   if(!VALID_TABS.includes(nextTab))return;
   tab=nextTab;
+  if(tab==='codes')loadCodes();
   try{localStorage.setItem('fyndaren-active-tab',tab)}catch(e){}
 }
 let anim=true,DATA=[],loading=true,err='',tab=readSavedTab(),cat='Alla',q='',hideMem=false,sortMode='recommended',cmp='',favs=new Set(),user=null,rewardSummary={available_points:0,pending_points:0,expiring_soon_points:0,next_expiry_at:null},rewardLoading=false,rewardError='',rewardHistory=[],rewardHistoryLoading=false,rewardHistoryError='',rewardCatalog=[],rewardCatalogLoading=false,rewardCatalogError='',rewardRedeemingId=null,rewardRedemptions=[],rewardRedemptionsLoading=false,rewardRedemptionsError='',isRewardAdmin=false,rewardAdminChecked=false,adminRedemptions=[],adminRedemptionsLoading=false,adminRedemptionsError='',adminRedemptionFilter='open',adminUpdatingId=null;
@@ -1401,15 +1402,18 @@ function isOfferListing(o){
 }
 
 async function loadCodes(){
+  if(codesState==='loading'||codesState==='ready')return;
+  codesState='loading';
+  if(tab==='codes')render();
   try{
-    if(sb){
-      const cr=await sb.from('codes').select('*').order('id');
-      if(!cr.error&&Array.isArray(cr.data))CODES=cr.data.filter(r=>!r.valid_until||String(r.valid_until).slice(0,10)>=todayISO()).map(r=>({a:okUrl(r.affiliate_url),s:r.store,l:r.logo||String(r.store).slice(0,2),col:r.color,code:r.code,d:(r.description||'')+(r.valid_until?', gäller t.o.m. '+r.valid_until:'')}));
-    }
+    if(!sb)throw new Error('supabase');
+    const cr=await sb.from('codes').select('*').order('id');
+    if(cr.error||!Array.isArray(cr.data))throw new Error('codes');
+    CODES=cr.data.filter(r=>!r.valid_until||String(r.valid_until).slice(0,10)>=todayISO()).map(r=>({a:okUrl(r.affiliate_url),s:r.store,l:r.logo||String(r.store).slice(0,2),col:r.color,code:r.code,d:(r.description||'')+(r.valid_until?', gäller t.o.m. '+r.valid_until:'')}));
+    codesState='ready';
   }catch(e){
-    // Erbjudandena ska inte behöva vänta på rabattkodstjänsten.
+    codesState='error';
   }finally{
-    codesLoading=false;
     if(tab==='codes')render();
   }
 }
@@ -1927,7 +1931,8 @@ function compare(){
   ${items.map((o,i)=>`<div class="row ${i?'':'best'}"><div class="logo" style="background:${colr(o.col)}">${esc(o.l)}</div><div class="t"><b>${esc(o.s)}: ${kr(o.p)}</b><span>${esc(o.n)} · ${esc(o.u)}${o.m?' · kräver '+esc(o.m):''}</span></div>${i?`<span class="mute">+${Math.round((o.uv/best-1)*100)} %</span>`:'<span class="tag">Billigast</span>'}</div>`).join('')}`}
 
 function codes(){
-  if(codesLoading)return '<h2>Rabattkoder</h2><div class="empty"><b>Hämtar rabattkoder…</b></div>';
+  if(codesState==='error')return '<h2>Rabattkoder</h2><div class="empty">Kunde inte hämta rabattkoderna.<button class="btn" data-retry-codes>Försök igen</button></div>';
+  if(codesState!=='ready')return '<h2>Rabattkoder</h2><div class="empty"><b>Hämtar rabattkoder…</b></div>';
   if(!CODES.length)return '<h2>Rabattkoder</h2><div class="empty"><b>Inga rabattkoder just nu</b>Kom tillbaka snart.</div>';
   return `<h2>Rabattkoder</h2>${CODES.map(c=>`<div class="row"><div class="logo" style="background:${colr(c.col)}">${esc(c.l)}</div><div class="t"><b>${esc(c.s)}</b><span>${esc(c.d)}</span>${c.a?`<div><a class="golink" href="${esc(c.a)}" target="_blank" rel="sponsored nofollow noopener noreferrer">Till butiken ↗</a> <span class="adl">Annonslänk</span></div>`:''}</div><button class="code" data-copy="${esc(c.code)}" aria-label="Kopiera koden ${esc(c.code)}">${esc(c.code)}</button></div>`).join('')}`}
 
@@ -2193,6 +2198,7 @@ document.addEventListener('click',e=>{
   if(e.target.matches('[data-close]')){closeAuth();return}
   const b=e.target.closest('button');if(!b)return;const d=b.dataset;
   if(d.togglePassword!==undefined){const passwordInput=$('#pw');if(passwordInput){const show=passwordInput.type==='password';passwordInput.type=show?'text':'password';b.setAttribute('aria-pressed',String(show));b.setAttribute('aria-label',show?'Dölj lösenord':'Visa lösenord');b.title=show?'Dölj lösenord':'Visa lösenord'}return}
+  if(d.retryCodes!==undefined){loadCodes();return}
   if(d.clearFavorites!==undefined){clearFavorites();return}
   if(d.relatedId!==undefined){openProduct(Number(d.relatedId));return}
   if(d.productPrev!==undefined){stepProduct(-1);return}
@@ -2280,7 +2286,7 @@ if(CATS.includes(requestedCategory)){
   cat=requestedCategory;
   setActiveTab('offers');
 }
-loadCodes();
+if(tab==='codes')loadCodes();
 loadDeals().then(openSharedDealFromQuery);
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}
 document.addEventListener('change',e=>{if(e.target&&e.target.id==='offer-sort'){sortMode=e.target.value;render();}});
