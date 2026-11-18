@@ -96,7 +96,28 @@ const verifiedImageByDealId = {
   208: "https://biosalma.se/wp-content/uploads/2024/06/Magnesium-375mg-1.png"
 };
 
-function makePage(deal) {
+const categoryOf = deal => deal.category === "Mat" ? "Mat & Dryck" : deal.category;
+const categories = new Set(['Alla','Mat & Dryck','Skönhet & Personlig vård','Hem & Inredning','Elektronik','Apotek','Kläder','Bygg & Hemmafix'].filter(category => category !== "Alla"));
+function relatedOffers(deal, byCategory) {
+  const category = categoryOf(deal);
+  if (!categories.has(category)) return "";
+  const seen = new Set([slugify(deal.name)]);
+  const cards = [];
+  for (const item of byCategory.get(category) || []) {
+    const name = slugify(item.name);
+    if (seen.has(name)) continue;
+    seen.add(name);
+    const href = "/fynd/" + slugify(item.store + " " + item.name) + "-" + Number(item.id) + "/";
+    const image = validHttps(item.image_url) || validHttps(verifiedImageByDealId[item.id]);
+    const photo = image ? '<img loading="lazy" decoding="async" width="64" height="64" alt="" src="' + html(image) + '">' : "";
+    cards.push('<a class="related-item" href="' + html(href) + '">' + photo + '<span><small>' + html(item.store) + '</small><strong>' + html(item.name) + '</strong><b>' + html(money(item.price)) + '</b></span></a>');
+    if (cards.length === 3) break;
+  }
+  const link = '<a class="related-link" href="/app.html?category=' + encodeURIComponent(category) + '">Se fler fynd inom ' + html(category) + '</a>';
+  return '<section class="related">' + (cards.length ? '<h2>Fler fynd i samma kategori</h2>' + cards.join("") : "") + link + '</section>';
+}
+
+function makePage(deal, byCategory) {
   const id = Number(deal.id);
   const slug = slugify(deal.store + " " + deal.name) + "-" + id;
   const canonical = BASE_URL + "/fynd/" + slug + "/";
@@ -168,6 +189,7 @@ function makePage(deal) {
     '.price{font-size:32px;font-weight:900;color:#f0d77e}.old-price{color:#bbb;font-size:14px;margin:5px 0 14px}',
     '.info,.notice{margin:14px 0;padding:12px;border:1px solid rgba(255,255,255,.09);border-radius:12px;color:#ddd;line-height:1.55}',
     '.notice{border-color:rgba(230,202,101,.32);background:rgba(212,175,55,.08)}.notice.expired{border-color:rgba(220,65,65,.45);background:rgba(220,65,65,.09)}',
+    '.related{margin-top:24px}.related h2{font-size:1.2rem}.related-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #494333;color:inherit;text-decoration:none}.related-item img{object-fit:contain;background:white;border-radius:8px}.related-item span{min-width:0;overflow-wrap:anywhere}.related-item strong,.related-item small,.related-item b{display:block}.related-item b,.related-link{color:#e6ca65}.related-link{display:inline-block;padding:14px 0;font-weight:700}',
     '.actions{display:grid;gap:10px;margin-top:20px}.primary,.secondary{display:block;padding:14px 16px;border-radius:12px;text-align:center;text-decoration:none;font-weight:800}',
     '.primary{background:linear-gradient(135deg,#d4af37,#e6ca65);color:#090909}.secondary{border:1px solid rgba(230,202,101,.38);color:#e6ca65;background:rgba(255,255,255,.03)}',
     'footer{color:#999;line-height:1.5;margin-top:22px;font-size:12px}button{font:inherit;cursor:pointer}',
@@ -188,12 +210,14 @@ function makePage(deal) {
     expiry ? '<p class="info"><b>Giltighet:</b> ' + html(expiry) + '</p>' : "",
     checked ? '<p class="info">' + html(checked) + '</p>' : "",
     stateNotice,
+    expired ? relatedOffers(deal, byCategory) : "",
     '<div class="actions">',
     retailerButton,
     '<a class="secondary" href="' + (expired ? "/app.html" : "../../app.html?deal=" + encodeURIComponent(id)) + '">' +
       (expired ? "Se aktuella erbjudanden i Fyndarens app" : "Öppna fyndet i Fyndarens app") + '</a>',
     '<button class="secondary" id="share" type="button">Dela detta fynd</button>',
     '</div>',
+    expired ? "" : relatedOffers(deal, byCategory),
     '</article>',
     '<footer>Priser och villkor kan ändras. Kontrollera alltid uppgifterna hos butiken före köp. Vissa butikslänkar kan vara annonslänkar. Fyndaren kan få provision utan extra kostnad för dig.<br><a href="/integritetspolicy.html">Integritetspolicy</a> · <a href="/om-oss.html">Om Fyndaren</a></footer>',
     '</main>',
@@ -295,10 +319,6 @@ const catalogDeals = new Set();
 
 for (const deal of deals) {
   const slug = slugify(deal.store + " " + deal.name) + "-" + Number(deal.id);
-  knownSlugs.add(slug);
-  const directory = join(OUT_DIR, slug);
-  mkdirSync(directory, { recursive: true });
-  writeFileSync(join(directory, "index.html"), makePage(deal), "utf8");
 
   const validTo = validDate(deal.valid_to);
   const checkedOn = validDate(deal.checked_on);
@@ -315,6 +335,20 @@ const sortedCatalogDeals = [...catalogDeals].sort((a, b) => {
   const bDate = validDate(b.valid_to) || "9999-12-31";
   return aDate.localeCompare(bDate) || String(a.store).localeCompare(String(b.store), "sv");
 });
+const byCategory = new Map();
+for (const item of sortedCatalogDeals) {
+  if (!validDate(item.valid_to) || !(Number(item.old_price) > Number(item.price))) continue;
+  const category = categoryOf(item);
+  if (!byCategory.has(category)) byCategory.set(category, []);
+  byCategory.get(category).push(item);
+}
+for (const deal of deals) {
+  const slug = slugify(deal.store + " " + deal.name) + "-" + Number(deal.id);
+  knownSlugs.add(slug);
+  const directory = join(OUT_DIR, slug);
+  mkdirSync(directory, { recursive: true });
+  writeFileSync(join(directory, "index.html"), makePage(deal, byCategory), "utf8");
+}
 writeFileSync(join(OUT_DIR, "index.html"), makeCatalogPage(sortedCatalogDeals), "utf8");
 
 // Remove pages only when the underlying deal itself has been deleted.
