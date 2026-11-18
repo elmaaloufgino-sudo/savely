@@ -1446,7 +1446,7 @@ async function loadDeals(){
       if(cursor!==null)request=request.lt('id',cursor);
       const {data,error}=await request.limit(limit);
       if(error)throw error;
-      active.push(...data.map(norm).filter(o=>!o.vt||o.vt>=todayISO()));
+      active.push(...data.map(norm).filter(o=>o.vt&&o.vt>=todayISO()));
       if(data.length<limit)break;
       cursor=data[data.length-1].id;
       if(first && active.some(isOfferListing)){
