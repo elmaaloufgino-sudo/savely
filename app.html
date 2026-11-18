@@ -2144,6 +2144,11 @@ function openSharedDealFromQuery(){
   if(!offer)return;
   setActiveTab('offers');cat='Alla';q='';render();openProduct(offer.id);
 }
+const requestedCategory=new URLSearchParams(location.search).get('category');
+if(CATS.includes(requestedCategory)){
+  cat=requestedCategory;
+  setActiveTab('offers');
+}
 loadCodes();
 loadDeals().then(openSharedDealFromQuery);
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}
