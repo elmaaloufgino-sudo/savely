@@ -1964,13 +1964,27 @@ function recommendedStartOffers(list){
   return ordered;
 }
 
+function searchRelevance(offer,query,terms){
+  const name=searchKey(offer.n);
+  if(name===query)return 4;
+  if((' '+name+' ').includes(' '+query+' '))return 3;
+  const nameWords=new Set(name.split(' '));
+  if(terms.every(term=>nameWords.has(term)))return 2;
+  if(terms.every(term=>name.includes(term)))return 1;
+  return 0;
+}
+
 function offerResults(t){
   const terms=t?t.split(' '):[];
   const offerData=DATA.filter(isOfferListing);
   const list=offerData.filter(o=>(cat==='Alla'||o.c===cat)&&(!hideMem||!o.m)&&terms.every(term=>(o.searchText||searchKey([o.s,o.n,o.c,o.u,o.cond].join(' '))).includes(term)));
   let sorted=list;
   if(sortMode==='recommended'&&cat==='Alla'&&!t)sorted=recommendedStartOffers(list);
-  else if(sortMode!=='recommended')sorted=list.slice().sort((a,b)=>{
+  else if(sortMode==='recommended'&&t){
+    sorted=list.map(offer=>({offer,relevance:searchRelevance(offer,t,terms)}))
+      .sort((a,b)=>b.relevance-a.relevance)
+      .map(result=>result.offer);
+  }else if(sortMode!=='recommended')sorted=list.slice().sort((a,b)=>{
     if(sortMode==='cheapest')return (Number(a.p)||0)-(Number(b.p)||0);
     if(sortMode==='expensive')return (Number(b.p)||0)-(Number(a.p)||0);
     if(sortMode==='newest')return String(b.k||'').localeCompare(String(a.k||''))||(Number(b.id)||0)-(Number(a.id)||0);
