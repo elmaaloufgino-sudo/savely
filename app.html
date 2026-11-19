@@ -1298,6 +1298,49 @@ nav{
 </style>
 <style>.go.affiliate-go{display:flex;flex-direction:column;align-items:stretch;gap:4px}.affiliate-label{display:block;font-size:12px;line-height:1.4;color:var(--mute)}footer .disc{max-width:60ch;margin:0 auto 12px}</style>
 <style>
+/* Tydligare sökfält och huvudmeny i datorvyn. */
+@media(min-width:1024px){
+  .search-dock .search{
+    min-height:54px;
+    background:#282830;
+    border-color:#85818e;
+  }
+  .search-dock .search:focus-within{border-color:var(--gink)}
+  .search-dock .search input{height:52px;font-size:18px;font-weight:700}
+  .search-dock .search input::placeholder{color:#e4e3e9;opacity:1}
+  .search-dock .search svg{width:22px;height:22px;color:var(--gink)}
+
+  nav[aria-label="Huvudmeny"]{
+    max-width:760px;
+    gap:8px;
+    padding-inline:12px;
+    background:#141418;
+    border:1px solid #696571;
+    border-bottom:0;
+    border-radius:18px 18px 0 0;
+    box-shadow:0 -6px 24px rgba(0,0,0,.35);
+  }
+  nav[aria-label="Huvudmeny"] button{
+    flex-direction:row;
+    justify-content:center;
+    gap:9px;
+    padding:6px 12px;
+    border:1px solid transparent;
+    color:var(--ink);
+    font-size:15px;
+    font-weight:800;
+    line-height:1.25;
+  }
+  nav[aria-label="Huvudmeny"] button:hover{background:#292930}
+  nav[aria-label="Huvudmeny"] button[aria-current="page"]{
+    background:#352e1c;
+    border-color:var(--gink);
+    color:var(--gink);
+  }
+  nav[aria-label="Huvudmeny"] button[aria-current="page"]::before{display:none}
+  nav[aria-label="Huvudmeny"] .nb{position:static}
+}
+
 .campaign-details>b{-webkit-line-clamp:3}
 .campaign-details .campaign-saving{color:#a1c7ad}
 .campaign-details:has(>.affiliate-label){grid-template-areas:"top top" "name name" "price price" "save save" "label label" "action action"}
