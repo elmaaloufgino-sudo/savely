@@ -905,7 +905,21 @@ header{position:relative;top:auto;z-index:1}
 
 /* Premium Deal Showcase – kompakta textbaserade kampanjkort */
 .campaign-title{font-family:"Cinzel",Georgia,serif;letter-spacing:.035em}
-.hero{display:flex;flex-direction:row;gap:12px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scroll-padding-inline:16px;margin:0 -16px;padding:0 16px 8px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.campaign-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.campaign-arrows{display:flex;flex:none;gap:8px}
+.campaign-arrows[hidden]{display:none}
+.campaign-arrow{
+  display:grid;place-items:center;width:44px;height:44px;padding:0;
+  border:1px solid var(--gink);border-radius:12px;background:var(--grad);color:#15110a;
+  cursor:pointer;
+}
+.campaign-arrow[aria-disabled="true"]{background:var(--card);color:var(--mute);border-color:var(--line);cursor:default}
+.hero{
+  position:relative;display:flex;flex-direction:row;gap:12px;overflow-x:auto;overflow-y:hidden;
+  max-width:100%;margin:0;padding:6px 6px 8px;touch-action:pan-x pan-y;
+  scroll-snap-type:x mandatory;scroll-padding-inline:6px;scrollbar-width:none;
+}
+.hero>.campaign-card:last-child{scroll-snap-align:end}
 .hero>.campaign-card{
   flex:0 0 88%;max-width:520px;min-height:94px;padding:0;overflow:hidden;display:block;
   scroll-snap-align:start;text-align:left;position:relative;color:#fff;background:#171719;
@@ -2059,7 +2073,37 @@ function offerResults(t){
 function campaignSection(){
   const campaigns=currentCampaigns();
   const campaignContent=loading?'<div class="empty">Hämtar aktuella kampanjer…</div>':err&&!campaigns.length?'<div class="empty">Kampanjerna kunde inte hämtas just nu.</div>':campaigns.length?campaigns.map((o,i)=>{const saved=Math.round((o.o-o.p)*100)/100;return `<button class="hc campaign-card" data-hero="${o.id}" aria-label="Visa kampanjen för ${esc(o.n)}"><span class="campaign-visual">${productVisual(o,i<2)}</span><span class="campaign-details"><span class="campaign-topline"><span class="campaign-store">${esc(o.s)}</span><small>−${pct(o)} %</small></span><b>${esc(o.n)}</b><span class="campaign-price"><strong>${kr(o.p)}</strong><span class="campaign-previous-price"><span class="previous-label">Tidigare pris</span><s>${kr(o.o)}</s></span></span><span class="campaign-saving">Du sparar ${kr(saved)}</span>${o.a?'<span class="affiliate-label">Annonslänk</span>':''}<span class="campaign-cta">Se erbjudandet <span aria-hidden="true">↗</span></span></span></button>`}).join(''):'<div class="empty">Inga rabatterade erbjudanden just nu.</div>';
-  return `<h2 class="campaign-title">Heta kampanjer just nu</h2><div class="hero">${campaignContent}</div>`;
+  const arrows=!loading&&campaigns.length>1?`<div class="campaign-arrows" hidden>
+    <button class="campaign-arrow" type="button" data-campaign-step="-1" aria-label="Föregående kampanj" aria-controls="campaign-track"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+    <button class="campaign-arrow" type="button" data-campaign-step="1" aria-label="Nästa kampanj" aria-controls="campaign-track"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+  </div>`:'';
+  return `<div class="campaign-heading"><h2 class="campaign-title" id="campaign-title">Heta kampanjer just nu</h2>${arrows}</div><div id="campaign-track" class="hero" role="group" aria-labelledby="campaign-title">${campaignContent}</div>`;
+}
+let campaignResizeObserver;
+function setupCampaignRail(){
+  campaignResizeObserver?.disconnect();
+  const track=$('#campaign-track'),arrows=$('.campaign-arrows');
+  if(!track||!arrows)return;
+  const [previous,next]=arrows.querySelectorAll('button');
+  function update(){
+    const max=track.scrollWidth-track.clientWidth;
+    arrows.hidden=max<=2;
+    previous.setAttribute('aria-disabled',String(track.scrollLeft<=2));
+    next.setAttribute('aria-disabled',String(track.scrollLeft>=max-2));
+  }
+  track.addEventListener('scroll',update,{passive:true});
+  campaignResizeObserver=new ResizeObserver(update);
+  campaignResizeObserver.observe(track);
+  update();
+}
+function scrollCampaigns(direction){
+  const track=$('#campaign-track');
+  const max=track.scrollWidth-track.clientWidth;
+  const cards=[...track.querySelectorAll('.campaign-card')];
+  const stops=cards.map(card=>Math.min(max,card.offsetLeft-cards[0].offsetLeft));
+  const current=track.scrollLeft;
+  const target=direction>0?stops.find(stop=>stop>current+2):stops.reverse().find(stop=>stop<current-2);
+  track.scrollTo({left:target??(direction>0?max:0),behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
 }
 function offers(){
   const t=searchKey(q);
@@ -2240,8 +2284,13 @@ function updateSearchResults(){
   const t=searchKey(q);
   const {body,count}=offerResults(t);
   const campaigns=$('#offer-campaigns');
-  if(t)campaigns.replaceChildren();
-  else if(!campaigns.firstChild)campaigns.innerHTML=campaignSection();
+  if(t&&campaigns.firstChild){
+    campaigns.replaceChildren();
+    setupCampaignRail();
+  }else if(!t&&!campaigns.firstChild){
+    campaigns.innerHTML=campaignSection();
+    setupCampaignRail();
+  }
   $('#offer-heading').textContent=t?'Sökresultat':'Aktiva erbjudanden';
   $('#offer-count').textContent=count;
   $('#offer-results').innerHTML=body;
@@ -2249,6 +2298,7 @@ function updateSearchResults(){
 }
 function render(){
   const mainEl=$('#main');mainEl.innerHTML={offers,compare,codes,list,rewards,adminRewards:rewardAdminPanel}[tab]();
+  setupCampaignRail();
   observeMoreOffers(mainEl);
   if(anim){const sb=mainEl.querySelector('.stats b');if(sb&&DATA.length)countUp(sb,DATA.length)}
   anim=false;
@@ -2416,6 +2466,10 @@ document.addEventListener('click',e=>{
   if(d.productPrev!==undefined){stepProduct(-1);return}
   if(d.productNext!==undefined){stepProduct(1);return}
   if(d.shareProduct!==undefined){shareProduct(d.shareProduct);return}
+  if(d.campaignStep!==undefined){
+    if(b.getAttribute('aria-disabled')!=='true')scrollCampaigns(Number(d.campaignStep));
+    return;
+  }
   if(d.tab){setActiveTab(d.tab);anim=true;render();scrollTo(0,0)}
   else if(d.tick){const o=DATA.find(x=>x.id===+d.tick);if(o){q=o.n;$('#q').value=o.n;cat='Alla';setActiveTab('offers');anim=true;render();scrollToTarget(document.querySelector('.grid')||document.body)}}
   else if(d.fav){toggleFav(+d.fav)}
