@@ -1398,16 +1398,6 @@ nav{
   .campaign-details .campaign-saving{color:#9ae2b3;font-size:13px;line-height:1.4}
   .campaign-details .campaign-cta{font-size:13px}
 }
-.offer-categories{
-  position:sticky;
-  top:calc(env(safe-area-inset-top,0px) + var(--search-height,64px));
-  z-index:5;
-  background:#141418;
-  padding-block:6px;
-}
-@media(max-width:767px){
-  .offer-categories{flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto}
-}
 </style>
 </head>
 <body>
@@ -1440,12 +1430,6 @@ nav{
 <script>
 const SUPABASE_URL='https://ebmqzrejrpijitxeggsl.supabase.co';
 const SUPABASE_KEY='sb_publishable_ep-vKQBf3tjvDC2h03BlYQ_hwUqrvY5';
-const searchDock=document.querySelector('.search-dock');
-function syncSearchHeight(){
-  document.documentElement.style.setProperty('--search-height',searchDock.offsetHeight+'px');
-}
-syncSearchHeight();
-new ResizeObserver(syncSearchHeight).observe(searchDock);
 let sb=null;
 try{sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY)}catch(e){}
 
@@ -1891,7 +1875,14 @@ async function attachGallery(o){
       };
       controls.firstElementChild.onclick=()=>move(-1);
       controls.lastElementChild.onclick=()=>move(1);
-      moveGallery=move;
+      moveGallery=direction=>{
+        if(direction>0 && current===urls.length-1 && requested===current && activeProductIds.length>1){
+          stepProduct(direction);
+          return;
+        }
+        if(direction>0 && requested===urls.length-1 && requested!==current)return;
+        move(direction);
+      };
     }
     show(0,true);
   }catch{ /* Den vanliga produktbilden fungerar även utan bildlistan. */ }
@@ -2162,7 +2153,7 @@ function offers(){
   const {body,count}=offerResults(t);
   return `${DEMO?'<div class="demo">Under uppbyggnad: erbjudandena nedan är exempel tills riktiga är på plats.</div>':''}<div id="offer-campaigns">${t?'':campaignSection()}</div>
   <h2 class="offers-title"><span id="offer-heading">${t?'Sökresultat':'Aktiva erbjudanden'}</span><span id="offer-count" class="n" aria-live="polite">${count}</span></h2>
-  <div class="chips offer-categories" role="group" aria-label="Kategorier">${CATS.map(c=>`<button class="chip" data-cat="${c}" aria-pressed="${c===cat}">${ICONS[c]?ICONS[c]+' ':''}${c}</button>`).join('')}</div>
+  <div class="chips" role="group" aria-label="Kategorier">${CATS.map(c=>`<button class="chip" data-cat="${c}" aria-pressed="${c===cat}">${ICONS[c]?ICONS[c]+' ':''}${c}</button>`).join('')}</div>
   <div class="sort-row"><label for="offer-sort">Sortera</label><select id="offer-sort" aria-label="Sortera erbjudanden"><option value="recommended"${sortMode==='recommended'?' selected':''}>Rekommenderade</option><option value="cheapest"${sortMode==='cheapest'?' selected':''}>Billigaste först</option><option value="expensive"${sortMode==='expensive'?' selected':''}>Dyraste först</option><option value="newest"${sortMode==='newest'?' selected':''}>Senaste först</option><option value="discount"${sortMode==='discount'?' selected':''}>Störst rabatt först</option></select></div>
   <div class="sw"><button data-mem aria-pressed="${hideMem}" aria-label="Dölj erbjudanden som kräver medlemskap"></button>Dölj erbjudanden som kräver medlemskap</div>
   <div id="offer-results">${body}</div>`}
@@ -2526,17 +2517,7 @@ document.addEventListener('click',e=>{
   else if(d.tick){const o=DATA.find(x=>x.id===+d.tick);if(o){q=o.n;$('#q').value=o.n;cat='Alla';setActiveTab('offers');anim=true;render();scrollToTarget(document.querySelector('.grid')||document.body)}}
   else if(d.fav){toggleFav(+d.fav)}
   else if(d.productCta){openProduct(+d.productCta,false,b)}
-  else if(d.cat){
-    const chips=document.querySelector('.offer-categories');
-    const offset=chips.scrollLeft;
-    const focusCategory=chips.contains(document.activeElement);
-    cat=d.cat;anim=true;render();
-    const next=document.querySelector('.offer-categories');
-    next.scrollLeft=offset;
-    if(focusCategory)next.querySelector('[aria-pressed="true"]').focus({preventScroll:true});
-    const resultsTop=document.querySelector('#offer-results').getBoundingClientRect().top;
-    window.scrollBy({top:resultsTop-searchDock.getBoundingClientRect().height-next.offsetHeight-parseFloat(getComputedStyle(searchDock).top),behavior:'instant'});
-  }
+  else if(d.cat){const chips=document.querySelector('.chips');const chipsLeft=chips?chips.scrollLeft:0;cat=d.cat;anim=true;render();const nextChips=document.querySelector('.chips');if(nextChips)nextChips.scrollLeft=chipsLeft}
   else if(d.hero){const offer=DATA.find(o=>o.id===+d.hero);if(offer)openProduct(offer.id,false,b)}
   else if(d.mem!==undefined){hideMem=!hideMem;anim=true;render()}
   else if(d.cmp){const chips=document.querySelector('.chips');const chipsLeft=chips?chips.scrollLeft:0;cmp=d.cmp;anim=true;render();const nextChips=document.querySelector('.chips');if(nextChips)nextChips.scrollLeft=chipsLeft}
