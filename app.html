@@ -611,6 +611,9 @@ html,body{width:100%;max-width:100%;overflow-x:clip}
 body{overscroll-behavior-x:none}
 main{width:100%;min-width:0}
 .grid{width:100%;min-width:0;grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(min-width:1024px){
+  #offer-results > .grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
 .grid>*{min-width:0}
 .card,.card .info,.card .tile{min-width:0;max-width:100%}
 .hero,.chips{max-width:100vw;overscroll-behavior-x:contain;touch-action:pan-x}
