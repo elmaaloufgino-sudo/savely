@@ -907,7 +907,6 @@ header{position:relative;top:auto;z-index:1}
 .campaign-title{font-family:"Cinzel",Georgia,serif;letter-spacing:.035em}
 .campaign-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .campaign-arrows{display:flex;flex:none;gap:8px}
-.campaign-arrows[hidden]{display:none}
 .campaign-arrow{
   display:grid;place-items:center;width:44px;height:44px;padding:0;
   border:1px solid var(--gink);border-radius:12px;background:var(--grad);color:#15110a;
@@ -1329,8 +1328,7 @@ nav{
     gap:8px;
     padding-inline:12px;
     background:#141418;
-    border:1px solid #696571;
-    border-bottom:0;
+    border:2px solid var(--gink);
     border-radius:18px 18px 0 0;
     box-shadow:0 -6px 24px rgba(0,0,0,.35);
   }
@@ -1353,6 +1351,10 @@ nav{
   }
   nav[aria-label="Huvudmeny"] button[aria-current="page"]::before{display:none}
   nav[aria-label="Huvudmeny"] .nb{position:static}
+
+  #offer-campaigns{max-width:1064px;margin-inline:auto}
+  .campaign-heading{justify-content:flex-start}
+  .hero>.campaign-card{flex-basis:calc((100% - 12px) / 2)}
   .back-to-top{
     right:calc(24px + env(safe-area-inset-right,0px));
     bottom:calc(16px + env(safe-area-inset-bottom,0px));
@@ -2077,7 +2079,7 @@ function offerResults(t){
 function campaignSection(){
   const campaigns=currentCampaigns();
   const campaignContent=loading?'<div class="empty">Hämtar aktuella kampanjer…</div>':err&&!campaigns.length?'<div class="empty">Kampanjerna kunde inte hämtas just nu.</div>':campaigns.length?campaigns.map((o,i)=>{const saved=Math.round((o.o-o.p)*100)/100;return `<button class="hc campaign-card" data-hero="${o.id}" aria-label="Visa kampanjen för ${esc(o.n)}"><span class="campaign-visual">${productVisual(o,i<2)}</span><span class="campaign-details"><span class="campaign-topline"><span class="campaign-store">${esc(o.s)}</span><small>−${pct(o)} %</small></span><b>${esc(o.n)}</b><span class="campaign-price"><strong>${kr(o.p)}</strong><span class="campaign-previous-price"><span class="previous-label">Tidigare pris</span><s>${kr(o.o)}</s></span></span><span class="campaign-saving">Du sparar ${kr(saved)}</span>${o.a?'<span class="affiliate-label">Annonslänk</span>':''}<span class="campaign-cta">Se erbjudandet <span aria-hidden="true">↗</span></span></span></button>`}).join(''):'<div class="empty">Inga rabatterade erbjudanden just nu.</div>';
-  const arrows=!loading&&campaigns.length>1?`<div class="campaign-arrows" hidden>
+  const arrows=!loading&&campaigns.length>1?`<div class="campaign-arrows">
     <button class="campaign-arrow" type="button" data-campaign-step="-1" aria-label="Föregående kampanj" aria-controls="campaign-track"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
     <button class="campaign-arrow" type="button" data-campaign-step="1" aria-label="Nästa kampanj" aria-controls="campaign-track"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
   </div>`:'';
@@ -2091,7 +2093,6 @@ function setupCampaignRail(){
   const [previous,next]=arrows.querySelectorAll('button');
   function update(){
     const max=track.scrollWidth-track.clientWidth;
-    arrows.hidden=max<=2;
     previous.setAttribute('aria-disabled',String(track.scrollLeft<=2));
     next.setAttribute('aria-disabled',String(track.scrollLeft>=max-2));
   }
