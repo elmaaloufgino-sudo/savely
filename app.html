@@ -1353,6 +1353,10 @@ nav{
   }
   nav[aria-label="Huvudmeny"] button[aria-current="page"]::before{display:none}
   nav[aria-label="Huvudmeny"] .nb{position:static}
+  .back-to-top{
+    right:calc(24px + env(safe-area-inset-right,0px));
+    bottom:calc(16px + env(safe-area-inset-bottom,0px));
+  }
 }
 
 .campaign-details>b{-webkit-line-clamp:3}
