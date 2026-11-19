@@ -1367,6 +1367,37 @@ nav{
 .campaign-details>.affiliate-label{grid-area:label}
 .price-explanation summary{cursor:pointer;color:var(--ink);font-weight:600}
 .price-explanation p{margin:.5em 0 0}
+
+/* Läsbar text på erbjudande- och kampanjkort i datorvyn. */
+@media(min-width:1024px){
+  .card[data-product] h3{
+    color:#fff;
+    font-size:17px;
+    line-height:1.35;
+    letter-spacing:normal;
+    -webkit-line-clamp:3;
+  }
+  .card[data-product] .store,.card[data-product] .mem{font-size:12px}
+  .card[data-product] .cond{color:#f0f0f4;font-size:14px;line-height:1.5}
+  .card[data-product] .cat,.card[data-product] .mute,
+  .card[data-product] .previous-price small,.card[data-product] .previous-price s,
+  .card[data-product] .exp,.card[data-product] .chk,.card[data-product] .affiliate-label{
+    color:#dedee5;
+  }
+  .card[data-product] .previous-price small,.card[data-product] .previous-price s,
+  .card[data-product] .sv,.card[data-product] .mute,
+  .card[data-product] .exp,.card[data-product] .chk,.card[data-product] .affiliate-label{
+    font-size:13px;
+    line-height:1.4;
+  }
+  .card[data-product] .go a,.card[data-product] .go .offer-cta{font-size:14px}
+
+  .campaign-details>b{font-size:18px;line-height:1.35;letter-spacing:normal}
+  .campaign-details .previous-label,.campaign-details .campaign-previous-price s,
+  .campaign-details>.affiliate-label{color:#dedee5;font-size:13px;line-height:1.4}
+  .campaign-details .campaign-saving{color:#9ae2b3;font-size:13px;line-height:1.4}
+  .campaign-details .campaign-cta{font-size:13px}
+}
 </style>
 </head>
 <body>
