@@ -1492,7 +1492,7 @@ function offerDateText(row){
   const stockNote=note.match(/(?:så länge|så långt) lagret räcker/i);
   return listingEnd+(stockNote?' · '+stockNote[0]:'');
 }
-const norm=r=>({a:okUrl(r.affiliate_url),w:okUrl(r.shop_url),lc:/LAST_CHANCE_IMAGE/.test(r.conditions||''),cond:/LAST_CHANCE_IMAGE/.test(r.conditions||'')?'':(r.conditions||''),k:iso(r.checked_on),vt:iso(r.valid_to),id:r.id,s:r.store,l:r.logo,col:r.color,c:r.category==='Mat'?'Mat & Dryck':r.category,n:r.name,p:+r.price,o:+r.old_price,u:r.unit_text,uv:r.unit_price==null?null:+r.unit_price,m:r.membership,e:offerDateText(r),g:r.compare_group,img:r.image_url||null,searchText:searchKey([r.store,r.name,r.category,r.unit_text,/LAST_CHANCE_IMAGE/.test(r.conditions||'')?'':(r.conditions||'')].join(' '))});
+const norm=r=>({rank:r.pricerunner_rank,rankOn:iso(r.pricerunner_rank_on),rankUrl:okUrl(r.pricerunner_rank_url),a:okUrl(r.affiliate_url),w:okUrl(r.shop_url),lc:/LAST_CHANCE_IMAGE/.test(r.conditions||''),cond:/LAST_CHANCE_IMAGE/.test(r.conditions||'')?'':(r.conditions||''),k:iso(r.checked_on),vt:iso(r.valid_to),id:r.id,s:r.store,l:r.logo,col:r.color,c:r.category==='Mat'?'Mat & Dryck':r.category,n:r.name,p:+r.price,o:+r.old_price,u:r.unit_text,uv:r.unit_price==null?null:+r.unit_price,m:r.membership,e:offerDateText(r),g:r.compare_group,img:r.image_url||null,searchText:searchKey([r.store,r.name,r.category,r.unit_text,/LAST_CHANCE_IMAGE/.test(r.conditions||'')?'':(r.conditions||'')].join(' '))});
 function isComparisonOnly(o){return !!o.g&&!o.vt&&!o.e}
 function isOfferListing(o){
   if(isComparisonOnly(o))return false;
@@ -1832,7 +1832,7 @@ function purchaseTerm(o){
   if(bundle)return 'Totalt '+bundle[2]+' vid köp av '+bundle[1]+' st';
   return '';
 }
-function card(o,index=99){const term=purchaseTerm(o);const f=favs.has(o.id);const hasOldPrice=Number(o.o)>0;const sv=hasOldPrice?Math.round((o.o-o.p)*100)/100:null;return `<article class="card" data-product="${o.id}"><div class="tile" style="--tc:${colr(o.col)}"><span class="badge">${o.lc?'Last chance':(offerBadge(o)|| (o.s==='Kappahl'&&/2 för 299/i.test(o.n)?'2 för 299:-':(hasOldPrice?'-'+pct(o)+'%':'Erbjudande')))}</span><button type="button" class="fav ${f?'on':''}" data-fav="${o.id}" onclick="event.preventDefault();event.stopPropagation();toggleFav(Number(this.dataset.fav));return false" aria-pressed="${f}" aria-label="${f?'Ta bort från sparlistan':'Spara i sparlistan'}">${heart}</button>${productVisual(o,index===0)}<span class="ptag">${kr(o.p)}</span></div><div class="info"><div class="store">${esc(o.s)}<span class="cat"> · ${esc(o.c)}</span></div><h3><a class="card-details" href="${esc(productPageUrl(o))}" data-card-details="${o.id}" aria-label="Öppna fyndsidan för ${esc(o.n)}">${esc(o.n)}</a></h3>${hasOldPrice?`<div class="price"><span class="previous-price"><small>Angivet tidigare pris</small><s>${kr(o.o)}</s></span><span class="sv">Spara ${kr(sv)}</span></div>`:''}${storeComparison(o)}${term?`<div class="mem">${esc(term)}</div>`:''}${o.u?`<div class="mute">Jmf: ${esc(o.u)}</div>`:''}${o.m?`<span class="mem">Kräver ${esc(o.m)}</span>`:''}${o.cond?`<div class="cond">${esc(o.cond)}</div>`:''}${o.e?`<div class="exp">${clock} ${esc(o.e)}</div>`:''}${o.k?`<div class="chk">Kontrollerad ${dm(o.k)}</div>`:''}${o.a?`<div class="go affiliate-go"><span class="affiliate-label">Annonslänk</span><a href="${esc(o.a)}" target="_blank" rel="sponsored nofollow noopener noreferrer">Till butiken ↗</a></div>`:(o.w?`<div class="go"><a class="pl" href="${esc(o.w)}" target="_blank" rel="noopener noreferrer">Till butiken ↗</a></div>`:`<div class="go"><button type="button" class="offer-cta" data-product-cta="${o.id}" aria-label="Visa erbjudandet för ${esc(o.n)}">Visa detaljer</button></div>`)}</div></article>`}
+function card(o,index=99){const term=purchaseTerm(o);const f=favs.has(o.id);const hasOldPrice=Number(o.o)>0;const sv=hasOldPrice?Math.round((o.o-o.p)*100)/100:null;return `<article class="card" data-product="${o.id}"><div class="tile" style="--tc:${colr(o.col)}"><span class="badge">${o.lc?'Last chance':(offerBadge(o)|| (o.s==='Kappahl'&&/2 för 299/i.test(o.n)?'2 för 299:-':(hasOldPrice?'-'+pct(o)+'%':'Erbjudande')))}</span><button type="button" class="fav ${f?'on':''}" data-fav="${o.id}" onclick="event.preventDefault();event.stopPropagation();toggleFav(Number(this.dataset.fav));return false" aria-pressed="${f}" aria-label="${f?'Ta bort från sparlistan':'Spara i sparlistan'}">${heart}</button>${productVisual(o,index===0)}<span class="ptag">${kr(o.p)}</span></div><div class="info"><div class="store">${esc(o.s)}<span class="cat"> · ${esc(o.c)}</span></div><h3><a class="card-details" href="${esc(productPageUrl(o))}" data-card-details="${o.id}" aria-label="Öppna fyndsidan för ${esc(o.n)}">${esc(o.n)}</a></h3>${hasOldPrice?`<div class="price"><span class="previous-price"><small>Angivet tidigare pris</small><s>${kr(o.o)}</s></span><span class="sv">Spara ${kr(sv)}</span></div>`:''}${recommendationNote(o)}${storeComparison(o)}${term?`<div class="mem">${esc(term)}</div>`:''}${o.u?`<div class="mute">Jmf: ${esc(o.u)}</div>`:''}${o.m?`<span class="mem">Kräver ${esc(o.m)}</span>`:''}${o.cond?`<div class="cond">${esc(o.cond)}</div>`:''}${o.e?`<div class="exp">${clock} ${esc(o.e)}</div>`:''}${o.k?`<div class="chk">Kontrollerad ${dm(o.k)}</div>`:''}${o.a?`<div class="go affiliate-go"><span class="affiliate-label">Annonslänk</span><a href="${esc(o.a)}" target="_blank" rel="sponsored nofollow noopener noreferrer">Till butiken ↗</a></div>`:(o.w?`<div class="go"><a class="pl" href="${esc(o.w)}" target="_blank" rel="noopener noreferrer">Till butiken ↗</a></div>`:`<div class="go"><button type="button" class="offer-cta" data-product-cta="${o.id}" aria-label="Visa erbjudandet för ${esc(o.n)}">Visa detaljer</button></div>`)}</div></article>`}
 
 let galleryRequest;
 let moveGallery=null;
@@ -2042,61 +2042,50 @@ function searchKey(value){
   return String(value==null?'':value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('sv-SE').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
 }
 const featuredOfferLimit=8;
-const featuredCategoryOrder=CATS.slice(1).map(category=>({category,order:Math.random()}))
-  .sort((a,b)=>a.order-b.order).map(entry=>entry.category);
-const featuredOfferWeights=new Map();
-let featuredOfferData;
-const recommendedOffersByMembership=new Map();
-
-function recommendedStartOffers(list){
-  if(featuredOfferData!==DATA){
-    featuredOfferData=DATA;
-    recommendedOffersByMembership.clear();
-  }
-  if(recommendedOffersByMembership.has(hideMem))return recommendedOffersByMembership.get(hideMem);
-
-  const ranked=list.filter(offer=>featuredCategoryOrder.includes(offer.c)&&offer.s&&offer.n&&
-    (offer.a||offer.w)&&Number(offer.p)>0&&Number(offer.o)>Number(offer.p))
-    .sort((a,b)=>pct(b)-pct(a)||String(b.k||'').localeCompare(String(a.k||'')));
-  const selected=[],ids=new Set(),shops=new Set(),names=new Set();
-  const shop=offer=>searchKey(offer.s);
-  const name=offer=>searchKey(offer.n);
-  function promote(offer){
-    if(!offer)return;
-    selected.push(offer);
-    ids.add(offer.id);
-    shops.add(shop(offer));
-    names.add(name(offer));
-  }
-
-  for(const category of featuredCategoryOrder){
-    const candidates=[],seen=new Set();
-    for(const offer of ranked){
-      if(offer.c!==category||seen.has(name(offer))||names.has(name(offer)))continue;
-      if(candidates.length&&pct(candidates[0])>=25&&pct(offer)<25)break;
-      seen.add(name(offer));
-      if(!featuredOfferWeights.has(offer.id))featuredOfferWeights.set(offer.id,Math.random());
-      candidates.push(offer);
-      if(candidates.length===5)break;
-    }
-    candidates.sort((a,b)=>Number(shops.has(shop(a)))-Number(shops.has(shop(b)))||
-      featuredOfferWeights.get(a.id)-featuredOfferWeights.get(b.id));
-    promote(candidates[0]);
-  }
-
-  while(selected.length<featuredOfferLimit){
-    const remaining=ranked.filter(offer=>!ids.has(offer.id)&&!names.has(name(offer)));
-    const strong=remaining.filter(offer=>pct(offer)>=25);
-    const candidates=strong.length?strong:remaining;
-    const next=candidates.find(offer=>!shops.has(shop(offer)))||candidates[0];
-    if(!next)break;
-    promote(next);
-  }
-  const ordered=selected.concat(list.filter(offer=>!ids.has(offer.id)));
-  recommendedOffersByMembership.set(hideMem,ordered);
-  return ordered;
+function popularRank(o,today){
+  if(!Number.isInteger(o.rank)||o.rank<1||!o.rankOn||o.rankOn>today)return 0;
+  const age=(Date.parse(today)-Date.parse(o.rankOn))/86400000;
+  if(!(age>=0 && age<7))return 0;
+  try{
+    const url=new URL(o.rankUrl);
+    return url.origin==='https://www.pricerunner.se' && url.pathname==='/c/black-friday' &&
+      url.searchParams.get('sorting')==='GLOBALRANK_ASC' && url.searchParams.get('price_drop')==='-90_-50'?o.rank:0;
+  }catch{return 0}
 }
-
+function recommendedStartOffers(list){
+  const today=todayISO();
+  const candidates=[];
+  for(const o of list){
+    if(!o.s||!o.n||!(o.a||o.w)||!(o.p>0 && o.o>o.p))continue;
+    const rank=popularRank(o,today);
+    const compared=o.storeChoices?.length||0;
+    const discount=(o.o-o.p)/o.o;
+    let reason;
+    if(rank)reason='Plats '+rank+' på PriceRunners filtrerade Black Friday-lista · '+dm(o.rankOn);
+    else if(compared>1)reason='Lägsta produktpris hos '+compared+' jämförda butiker';
+    else if(discount>=0.5)reason='Minst halva priset jämfört med butikens angivna tidigare pris';
+    else continue;
+    candidates.push({offer:o,rank,compared,discount,reason});
+  }
+  candidates.sort((a,b)=>(a.rank||Infinity)-(b.rank||Infinity)||b.compared-a.compared||
+    b.discount-a.discount||String(b.offer.k||'').localeCompare(String(a.offer.k||''))||b.offer.id-a.offer.id);
+  const selected=[], ids=new Set(),names=new Set(),categories=new Set();
+  for(const diversify of [true,false]){
+    for(const item of candidates){
+      if(selected.length===featuredOfferLimit)break;
+      const o=item.offer,name=searchKey(o.n);
+      if(ids.has(o.id)||names.has(name)||(diversify && categories.has(o.c)))continue;
+      ids.add(o.id);names.add(name);categories.add(o.c);
+      selected.push({...o,reason:item.reason,reasonUrl:item.rank?o.rankUrl:''});
+    }
+  }
+  return selected.concat(list.filter(o=>!ids.has(o.id)));
+}
+function recommendationNote(o){
+  if(!o.reason)return '';
+  const label=esc(o.reason);
+  return '<div class="chk">'+(o.reasonUrl?'<a href="'+esc(o.reasonUrl)+'" target="_blank" rel="noopener noreferrer">'+label+'</a>':label)+'</div>';
+}
 function searchRelevance(offer,query,terms){
   const name=searchKey(offer.n);
   if(name===query)return 4;
