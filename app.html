@@ -1820,7 +1820,15 @@ function productVisual(o,prioritize=false){
 }
 
 function offerBadge(o){const t=[o.cond||'',o.n||''].join(' ');if(/köp\s*minst\s*2[\s\S]{0,100}?få\s*25\s*%/i.test(t))return 'Köp 2 få 25%';const m=t.match(/(\d+)\s*för\s*(\d+(?:[,.]\d{1,2})?)\s*kr/i);return m?m[1]+' för '+m[2].replace('.',',')+' kr':null;}
-function card(o,index=99){const f=favs.has(o.id);const hasOldPrice=Number(o.o)>0;const sv=hasOldPrice?Math.round((o.o-o.p)*100)/100:null;return `<article class="card" data-product="${o.id}"><div class="tile" style="--tc:${colr(o.col)}"><span class="badge">${o.lc?'Last chance':(offerBadge(o)|| (o.s==='Kappahl'&&/2 för 299/i.test(o.n)?'2 för 299:-':(hasOldPrice?'-'+pct(o)+'%':'Erbjudande')))}</span><button type="button" class="fav ${f?'on':''}" data-fav="${o.id}" onclick="event.preventDefault();event.stopPropagation();toggleFav(Number(this.dataset.fav));return false" aria-pressed="${f}" aria-label="${f?'Ta bort från sparlistan':'Spara i sparlistan'}">${heart}</button>${productVisual(o,index===0)}<span class="ptag">${kr(o.p)}</span></div><div class="info"><div class="store">${esc(o.s)}<span class="cat"> · ${esc(o.c)}</span></div><h3><a class="card-details" href="${esc(productPageUrl(o))}" data-card-details="${o.id}" aria-label="Öppna fyndsidan för ${esc(o.n)}">${esc(o.n)}</a></h3>${hasOldPrice?`<div class="price"><span class="previous-price"><small>Tidigare pris</small><s>${kr(o.o)}</s></span><span class="sv">Spara ${kr(sv)}</span></div>`:''}${o.u?`<div class="mute">Jmf: ${esc(o.u)}</div>`:''}${o.m?`<span class="mem">Kräver ${esc(o.m)}</span>`:''}${o.cond?`<div class="cond">${esc(o.cond)}</div>`:''}${o.e?`<div class="exp">${clock} ${esc(o.e)}</div>`:''}${o.k?`<div class="chk">Kontrollerad ${dm(o.k)}</div>`:''}${o.a?`<div class="go affiliate-go"><span class="affiliate-label">Annonslänk</span><a href="${esc(o.a)}" target="_blank" rel="sponsored nofollow noopener noreferrer">Till butiken ↗</a></div>`:(o.w?`<div class="go"><a class="pl" href="${esc(o.w)}" target="_blank" rel="noopener noreferrer">Till butiken ↗</a></div>`:`<div class="go"><button type="button" class="offer-cta" data-product-cta="${o.id}" aria-label="Visa erbjudandet för ${esc(o.n)}">Visa detaljer</button></div>`)}</div></article>`}
+function purchaseTerm(o){
+  const terms=o.cond||'';
+  if(/(?:kräver separat abonnemang|separat abonnemang krävs)/i.test(terms))return 'Separat abonnemang krävs';
+  const badge=offerBadge(o);
+  const bundle=badge?.match(/^(\d+) för ([\d,.]+ kr)$/);
+  if(bundle)return 'Totalt '+bundle[2]+' vid köp av '+bundle[1]+' st';
+  return '';
+}
+function card(o,index=99){const term=purchaseTerm(o);const f=favs.has(o.id);const hasOldPrice=Number(o.o)>0;const sv=hasOldPrice?Math.round((o.o-o.p)*100)/100:null;return `<article class="card" data-product="${o.id}"><div class="tile" style="--tc:${colr(o.col)}"><span class="badge">${o.lc?'Last chance':(offerBadge(o)|| (o.s==='Kappahl'&&/2 för 299/i.test(o.n)?'2 för 299:-':(hasOldPrice?'-'+pct(o)+'%':'Erbjudande')))}</span><button type="button" class="fav ${f?'on':''}" data-fav="${o.id}" onclick="event.preventDefault();event.stopPropagation();toggleFav(Number(this.dataset.fav));return false" aria-pressed="${f}" aria-label="${f?'Ta bort från sparlistan':'Spara i sparlistan'}">${heart}</button>${productVisual(o,index===0)}<span class="ptag">${kr(o.p)}</span></div><div class="info"><div class="store">${esc(o.s)}<span class="cat"> · ${esc(o.c)}</span></div><h3><a class="card-details" href="${esc(productPageUrl(o))}" data-card-details="${o.id}" aria-label="Öppna fyndsidan för ${esc(o.n)}">${esc(o.n)}</a></h3>${hasOldPrice?`<div class="price"><span class="previous-price"><small>Angivet tidigare pris</small><s>${kr(o.o)}</s></span><span class="sv">Spara ${kr(sv)}</span></div>`:''}${term?`<div class="mem">${esc(term)}</div>`:''}${o.u?`<div class="mute">Jmf: ${esc(o.u)}</div>`:''}${o.m?`<span class="mem">Kräver ${esc(o.m)}</span>`:''}${o.cond?`<div class="cond">${esc(o.cond)}</div>`:''}${o.e?`<div class="exp">${clock} ${esc(o.e)}</div>`:''}${o.k?`<div class="chk">Kontrollerad ${dm(o.k)}</div>`:''}${o.a?`<div class="go affiliate-go"><span class="affiliate-label">Annonslänk</span><a href="${esc(o.a)}" target="_blank" rel="sponsored nofollow noopener noreferrer">Till butiken ↗</a></div>`:(o.w?`<div class="go"><a class="pl" href="${esc(o.w)}" target="_blank" rel="noopener noreferrer">Till butiken ↗</a></div>`:`<div class="go"><button type="button" class="offer-cta" data-product-cta="${o.id}" aria-label="Visa erbjudandet för ${esc(o.n)}">Visa detaljer</button></div>`)}</div></article>`}
 
 let galleryRequest;
 let moveGallery=null;
@@ -1944,7 +1952,7 @@ function openProduct(id,keepCarousel=false,trigger=null){
   const detailFallback=(detailSrc!==img||detailSrcSet)?' data-original-src="'+esc(img)+'"':'';
   const image=img?'<img class="product-detail-shot product-detail-shot-'+o.id+'" src="'+esc(detailSrc)+'"'+detailResponsive+detailFallback+' alt="'+esc(o.n)+'" loading="eager" fetchpriority="high" decoding="async" onerror="if(this.dataset.originalSrc){const fallback=this.dataset.originalSrc;this.dataset.originalSrc=\'\';this.removeAttribute(\'srcset\');this.removeAttribute(\'sizes\');this.src=fallback;return;}this.style.display=\'none\'">':storeLogo(o);
   const details=[
-    hasOldPrice?'<details class="product-detail price-explanation"><summary>Om priset</summary><p>Tidigare pris: butikens lägsta pris under de 30 dagarna före prissänkningen. Priser och villkor kan ändras. Kontrollera alltid pris och villkor hos butiken innan du handlar.</p></details>':'',
+    hasOldPrice?'<details class="product-detail price-explanation"><summary>Om priset</summary><p>Besparingen är skillnaden mellan kampanjpriset och det angivna jämförelsepriset ('+kr(o.o)+'). Se butikens prisinformation för vilket tidigare pris jämförelsen gäller.</p></details>':'',
     o.u?'<div class="product-detail"><b>Jämförpris</b>'+esc(o.u)+'</div>':'',
     o.m?'<div class="product-detail"><b>Medlemskap</b>Kräver '+esc(o.m)+'</div>':'',
     o.cond?'<div class="product-detail"><b>Villkor</b>'+esc(o.cond)+'</div>':'',
@@ -2605,13 +2613,59 @@ function openSharedDealFromQuery(){
   if(!offer)return;
   setActiveTab('offers');cat='Alla';q='';render();openProduct(offer.id);
 }
+// Keep the reading position on this browser history entry, including after Android discards a tab.
+function visibleOfferAnchor(){
+  const cards=document.querySelectorAll('#offer-results .card[data-product]');
+  const edge=document.querySelector('.search-dock')?.getBoundingClientRect().bottom||0;
+  for(const card of cards){
+    const rect=card.getBoundingClientRect();
+    if(rect.bottom>edge && rect.top<innerHeight)return card;
+  }
+  return null;
+}
+function rememberOfferView(preferred){
+  const state={...history.state};
+  if(tab==='offers'){
+    const card=preferred||visibleOfferAnchor();
+    state.offerList={q,cat,sortMode,hideMem,visibleOffers,id:Number(card?.dataset.product)||0,
+      offset:card?.getBoundingClientRect().top||0,y:scrollY};
+  }else{delete state.offerList}
+  history.replaceState(state,'');
+}
+document.addEventListener('click',event=>{
+  const link=event.target.closest('.card .go a, .product-cta');
+  if(link && tab==='offers')rememberOfferView(link.closest('.card')||productReturn?.trigger?.closest('.card'));
+},true);
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden')rememberOfferView(productReturn?.trigger?.closest('.card'));
+});
+window.addEventListener('pagehide',()=>rememberOfferView(productReturn?.trigger?.closest('.card')));
 const requestedCategory=new URLSearchParams(location.search).get('category');
 if(CATS.includes(requestedCategory)){
   cat=requestedCategory;
   setActiveTab('offers');
 }
 if(tab==='codes')loadCodes();
-loadDeals().then(openSharedDealFromQuery);
+const sharedDeal=new URLSearchParams(location.search).has('deal');
+const savedView=sharedDeal?null:history.state?.offerList;
+if(savedView){
+  tab='offers';q=savedView.q;cat=savedView.cat;sortMode=savedView.sortMode;hideMem=savedView.hideMem;
+  $('#q').value=q;
+  offerView=JSON.stringify([q,cat,hideMem,sortMode]);
+  visibleOffers=savedView.visibleOffers;
+}
+let restorePending=!!savedView;
+for(const type of ['pointerdown','keydown','wheel','touchstart']){
+  if(restorePending)window.addEventListener(type,()=>{restorePending=false},{once:true,passive:true});
+}
+loadDeals().then(()=>{
+  if(sharedDeal){openSharedDealFromQuery();return}
+  if(!restorePending)return;
+  const index=pendingOffers.findIndex(item=>Number(item.id)===savedView.id);
+  if(index>=visibleOffers){visibleOffers=index+1;render()}
+  const card=document.querySelector('#offer-results [data-product="'+savedView.id+'"]');
+  window.scrollTo({top:card?scrollY+card.getBoundingClientRect().top-savedView.offset:savedView.y,behavior:'instant'});
+});
 if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{})})}
 document.addEventListener('change',e=>{if(e.target&&e.target.id==='offer-sort'){sortMode=e.target.value;render();}});
 </script>
