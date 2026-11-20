@@ -286,7 +286,7 @@ function parseXML(text){
  return nodes.map(n=>{const o={};for(const a of [...n.attributes])o[a.name]=a.value;for(const x of [...n.children])o[x.localName]=x.textContent.trim();return o});
 }
 function fieldOf(o,aliases){
- const entries=Object.entries(o);for(const a of aliases){const found=entries.find(([k])=>k.toLowerCase().replace(/[^a-z0-9]/g,'')===a);if(found&&found[1])return String(found[1]).trim()}
+ const entries=Object.entries(o);for(const a of aliases){const found=entries.find(([k])=>k.toLowerCase().normalize('NFD').replace(/[^a-z0-9]/g,'')===a);if(found&&found[1])return String(found[1]).trim()}
  return '';
 }
 function validISODate(value){
@@ -301,20 +301,51 @@ function parseFeedDate(value){
   else if((m=x.match(/^(\d{4})(\d{2})(\d{2})$/)))iso=m[1]+'-'+m[2]+'-'+m[3];
   return validISODate(iso)?iso:'';
 }
+function importProductGroup(row,name){
+ const condition=fieldOf(row,['condition','productcondition','itemcondition']).toLowerCase();
+ if(condition&&!['new','ny','nytt','nyvara'].includes(condition))return '';
+ const description=name+' '+fieldOf(row,['conditions','terms','specialconditions']);
+ if(/outlet|begagnad|begagnat|renoverad|rekonditioner|refurb|fyndvara|bundle|multipack|flerpack|öppnad|open.box|\d+\s*[- ]?pack/i.test(description))return '';
+ if(fieldOf(row,['isbundle']).match(/^(true|yes|ja|1)$/i))return '';
+ const pack=fieldOf(row,['multipack','packquantity','packsize']);
+ if(pack&&pack!=='1')return '';
+ const identifiers=['gtin','gtin8','gtin12','gtin13','gtin14','ean','ean13','upc','productgtin']
+   .map(alias=>fieldOf(row,[alias])).filter(Boolean);
+ if(identifiers.length){
+   const codes=new Set();
+   for(const id of identifiers){
+     if(!/^(?:\d{8}|\d{12,14})$/.test(id)||/^(\d)\1+$/.test(id))return '';
+     const digits=id.padStart(14,'0');
+     const sum=[...digits].reduce((total,digit,i)=>total+Number(digit)*(i%2?1:3),0);
+     if(sum%10!==0)return '';
+     codes.add(digits);
+   }
+   if(codes.size!==1)return '';
+   const digits=[...codes][0];
+   return 'produkt:'+ (digits.startsWith('0')?digits.slice(1):digits);
+ }
+ const brand=fieldOf(row,['brand','brandname','manufacturer']).toLowerCase();
+ const mpn=fieldOf(row,['mpn','manufacturerpartnumber']).toLowerCase();
+ if(!brand||!/[a-z]/i.test(mpn)||!/[0-9]/.test(mpn)||!/^[a-z0-9][a-z0-9._-]{3,79}$/.test(mpn))return '';
+ const variants=[['color','colour','farg'],['size','storlek'],['capacity','kapacitet']]
+   .map(fields=>fieldOf(row,fields).toLowerCase());
+ const suffix=variants.some(Boolean)?'|'+variants.map(encodeURIComponent).join('|'):'';
+ return 'produkt:'+encodeURIComponent(brand)+'-'+mpn+suffix;
+}
 function normalizeImport(o,i){
- const store=fieldOf(o,['store','merchant','advertiser','brand','retailer'])||'Okänd butik';
+ const store=fieldOf(o,['store','merchant','merchantname','advertiser','retailer','brand'])||'Okänd butik';
  const name=fieldOf(o,['name','title','productname','producttitle','description','product']);
- const priceRaw=fieldOf(o,['price','saleprice','currentprice','finalprice','discountprice']);
+ const priceRaw=fieldOf(o,['price','saleprice','currentprice','finalprice','discountprice','searchprice']);
  const oldRaw=fieldOf(o,['oldprice','originalprice','regularprice','rrp','listprice']);
- const image=fieldOf(o,['imageurl','image','imagelink','picture','pictureurl']);
- const tracking=fieldOf(o,['affiliateurl','trackingurl','deeplink','trackinglink']);
- const productUrl=fieldOf(o,['producturl','productlink','url','link']);
+ const image=fieldOf(o,['imageurl','image','imagelink','picture','pictureurl','merchantimageurl']);
+ const tracking=fieldOf(o,['affiliateurl','trackingurl','deeplink','trackinglink','awdeeplink']);
+ const productUrl=fieldOf(o,['producturl','productlink','merchantdeeplink','url','link']);
  const expiry=fieldOf(o,['validto','validuntil','enddate','expirydate','expirationdate','offerenddate','campaignenddate','validthrough']);
  const conditions=fieldOf(o,['conditions','terms','specialconditions']);
  const category=fieldOf(o,['category','productcategory','categoryname'])||'Övrigt';
  const price=parseFeedNumber(priceRaw),old=parseFeedNumber(oldRaw),valid_to=parseFeedDate(expiry);
  const safeUrl=value=>httpsUrl(value)||'';
- return {key:i,store,name,price,old_price:old,image_url:safeUrl(image),affiliate_url:safeUrl(tracking),shop_url:safeUrl(productUrl),valid_to,valid_until:valid_to?(+valid_to.slice(8,10))+'/'+(+valid_to.slice(5,7)):'',conditions,category,duplicate:!!DATA.find(d=>String(d.store).toLowerCase()===store.toLowerCase()&&String(d.name).toLowerCase()===name.toLowerCase()),selected:false,image_loaded:false,image_failed:false,raw:o};
+ return {key:i,groupSuggestion:importProductGroup(o,name),compare_group:null,store,name,price,old_price:old,image_url:safeUrl(image),affiliate_url:safeUrl(tracking),shop_url:safeUrl(productUrl),valid_to,valid_until:valid_to?(+valid_to.slice(8,10))+'/'+(+valid_to.slice(5,7)):'',conditions,category,duplicate:!!DATA.find(d=>String(d.store).toLowerCase()===store.toLowerCase()&&String(d.name).toLowerCase()===name.toLowerCase()),selected:false,image_loaded:false,image_failed:false,raw:o};
 }
 function parseFeedNumber(s){if(!s)return null;let x=String(s).replace(/\s/g,'').replace(/[A-Za-z€$£]/g,'');if(x.includes(',')&&x.includes('.'))x=x.lastIndexOf(',')>x.lastIndexOf('.')?x.replace(/\./g,'').replace(',','.'):x.replace(/,/g,'');else x=x.replace(',','.');const n=Number(x);return Number.isFinite(n)&&n>0?n:null}
 function importView(){
@@ -359,7 +390,7 @@ function renderImport(){
  const box=$('#importpreview');if(!box)return;
  const eligible=IMPORT_ROWS.filter(r=>!importIssue(r)).length;
  const selected=IMPORT_ROWS.filter(r=>r.selected&&!importIssue(r)).length;
- box.innerHTML=IMPORT_ROWS.length?`<h2>Förhandsgranska produkter (${IMPORT_ROWS.length})</h2><p class="import-help" data-import-summary>${eligible} godkända av ${IMPORT_ROWS.length} produkter. Rader utan produktbild, giltigt slutdatum, korrekta priser eller direktlänk blockeras.</p><div class="two" style="margin:12px 0"><button class="btn ghost sm" type="button" data-selectall>Markera alla godkända</button><button class="btn ghost sm" type="button" data-clearselect>Rensa markering</button></div>`+IMPORT_ROWS.map(r=>{const issue=importIssue(r);return `<div class="import-row" data-import-row="${r.key}"><input type="checkbox" data-import-select="${r.key}" ${r.selected&&!issue?'checked':''} ${issue?'disabled':''} aria-label="Select product">${r.image_url?`<img src="${esc(r.image_url)}" data-import-image="${r.key}" alt="Produktbild">`:`<div class="image-placeholder">Bild saknas</div>`}<div class="t"><b>${esc(r.name||'Namnlös produkt')}</b><small>${esc(r.store)} · ${r.price?kr(r.price):'Pris saknas'} ${r.old_price?'(tidigare '+kr(r.old_price)+')':''}</small><small>Giltig t.o.m. ${esc(r.valid_until||'saknar slutdatum')}</small><small class="image-status ${r.image_failed?'bad':''}" data-image-status>${r.image_failed?'Bilden kunde inte laddas':r.image_loaded?'Bilden laddades – kontrollera att det är rätt produkt':'Kontrollerar bild…'}</small><small class="import-issue ${issue?'bad':''}">${esc(issue||'Klar att läggas till')}</small><small>${r.affiliate_url?'Affiliatelänk finns':'Ingen affiliatelänk'} · ${r.shop_url?'Produktlänk finns':'Ingen produktlänk'}</small>${r.conditions?`<small>Villkor: ${esc(r.conditions)}</small>`:''}</div></div>`}).join('')+`<div class="panel"><b data-import-selected-count>${selected} valda</b><label for="import_checked_on">Datum då du kontrollerade priser, bild och villkor (obligatoriskt)</label><input id="import_checked_on" type="date" max="${todayISO()}" value="${esc(IMPORT_CHECKED_ON)}"><p class="import-help">Välj det datum då du faktiskt kontrollerade de markerade produkterna. Dagens datum fylls inte i automatiskt.</p>${priceChecksHTML('i')}<p class="import-help">Alla tre kontroller måste vara markerade för samtliga valda produkter innan publicering aktiveras.</p><button class="btn" type="button" data-publish-selected ${selected&&Object.values(IMPORT_CHECKS).every(Boolean)&&validISODate(IMPORT_CHECKED_ON)&&IMPORT_CHECKED_ON<=todayISO()?'':'disabled'}>Publicera valda produkter</button><div class="msg" id="publishmsg" role="status"></div></div>`:`<p class="import-help">Inga produkter har lästs in ännu.</p>`;
+ box.innerHTML=IMPORT_ROWS.length?`<h2>Förhandsgranska produkter (${IMPORT_ROWS.length})</h2><p class="import-help" data-import-summary>${eligible} godkända av ${IMPORT_ROWS.length} produkter. Rader utan produktbild, giltigt slutdatum, korrekta priser eller direktlänk blockeras.</p><div class="two" style="margin:12px 0"><button class="btn ghost sm" type="button" data-selectall>Markera alla godkända</button><button class="btn ghost sm" type="button" data-clearselect>Rensa markering</button></div>`+IMPORT_ROWS.map(r=>{const issue=importIssue(r);return `<div class="import-row" data-import-row="${r.key}"><input type="checkbox" data-import-select="${r.key}" ${r.selected&&!issue?'checked':''} ${issue?'disabled':''} aria-label="Select product">${r.image_url?`<img src="${esc(r.image_url)}" data-import-image="${r.key}" alt="Produktbild">`:`<div class="image-placeholder">Bild saknas</div>`}<div class="t"><b>${esc(r.name||'Namnlös produkt')}</b><small>${esc(r.store)} · ${r.price?kr(r.price):'Pris saknas'} ${r.old_price?'(tidigare '+kr(r.old_price)+')':''}</small>${r.groupSuggestion?`<label><input type="checkbox" data-import-group="${r.key}" ${r.compare_group?'checked':''}> Jämför samma produkt · ${esc(r.groupSuggestion.slice(8))}</label><small>Kontrollera modell, färg, storlek, antal och skick innan du kryssar i.</small>`:''}<small>Giltig t.o.m. ${esc(r.valid_until||'saknar slutdatum')}</small><small class="image-status ${r.image_failed?'bad':''}" data-image-status>${r.image_failed?'Bilden kunde inte laddas':r.image_loaded?'Bilden laddades – kontrollera att det är rätt produkt':'Kontrollerar bild…'}</small><small class="import-issue ${issue?'bad':''}">${esc(issue||'Klar att läggas till')}</small><small>${r.affiliate_url?'Affiliatelänk finns':'Ingen affiliatelänk'} · ${r.shop_url?'Produktlänk finns':'Ingen produktlänk'}</small>${r.conditions?`<small>Villkor: ${esc(r.conditions)}</small>`:''}</div></div>`}).join('')+`<div class="panel"><b data-import-selected-count>${selected} valda</b><label for="import_checked_on">Datum då du kontrollerade priser, bild och villkor (obligatoriskt)</label><input id="import_checked_on" type="date" max="${todayISO()}" value="${esc(IMPORT_CHECKED_ON)}"><p class="import-help">Välj det datum då du faktiskt kontrollerade de markerade produkterna. Dagens datum fylls inte i automatiskt.</p>${priceChecksHTML('i')}<p class="import-help">Alla tre kontroller måste vara markerade för samtliga valda produkter innan publicering aktiveras.</p><button class="btn" type="button" data-publish-selected ${selected&&Object.values(IMPORT_CHECKS).every(Boolean)&&validISODate(IMPORT_CHECKED_ON)&&IMPORT_CHECKED_ON<=todayISO()?'':'disabled'}>Publicera valda produkter</button><div class="msg" id="publishmsg" role="status"></div></div>`:`<p class="import-help">Inga produkter har lästs in ännu.</p>`;
  updateImportSummary();
 }
 async function publishSelected(){
@@ -372,7 +403,7 @@ async function publishSelected(){
  const list=rows.map(r=>r.store+': '+r.name+' — '+kr(r.price)+' — giltig t.o.m. '+r.valid_until).join('\\n');
  if(!confirm('Publicera '+rows.length+' valda produkter?\\n\\n'+list+'\\n\\nKontrollera att varje bild visar rätt produkt. Fortsätt?'))return;
  const firstId=DATA.reduce((m,d)=>Math.max(m,Number(d.id)||0),0)+1;
- const payload=rows.map((r,i)=>{const parts=r.store.trim().split(/\s+/);const logo=parts.length>1?parts.map(x=>x[0]).join('').slice(0,3).toUpperCase():r.store.slice(0,3).toUpperCase();return {id:firstId+i,store:r.store,logo,color:'#10b981',category:r.category||'Övrigt',name:r.name,price:r.price,old_price:r.old_price,verified_30d_price:r.shop_url?r.old_price:null,price_source_url:r.shop_url||null,image_url:r.image_url,affiliate_url:r.affiliate_url||null,shop_url:r.shop_url||null,valid_until:r.valid_until,valid_to:r.valid_to,checked_on:IMPORT_CHECKED_ON,conditions:r.conditions||null};});
+ const payload=rows.map((r,i)=>{const parts=r.store.trim().split(/\s+/);const logo=parts.length>1?parts.map(x=>x[0]).join('').slice(0,3).toUpperCase():r.store.slice(0,3).toUpperCase();return {id:firstId+i,store:r.store,logo,color:'#10b981',category:r.category||'Övrigt',name:r.name,compare_group:r.compare_group,price:r.price,old_price:r.old_price,verified_30d_price:r.shop_url?r.old_price:null,price_source_url:r.shop_url||null,image_url:r.image_url,affiliate_url:r.affiliate_url||null,shop_url:r.shop_url||null,valid_until:r.valid_until,valid_to:r.valid_to,checked_on:IMPORT_CHECKED_ON,conditions:r.conditions||null};});
  const btn=$('[data-publish-selected]');if(btn){btn.disabled=true;btn.textContent='Sparar…'}
  const result=await sb.from('deals').insert(payload).select();
  if(result.error||!result.data||result.data.length!==payload.length){const m=$('#publishmsg');if(m)m.textContent='Det gick inte att bekräfta sparandet. Kontrollera erbjudandelistan innan du försöker igen.';if(btn){btn.disabled=false;btn.textContent='Publicera markerade produkter'}return}
@@ -384,7 +415,7 @@ async function readFeed(file){
  catch(e){IMPORT_ROWS=[];renderImport();setMsg(e.message||'Filen kunde inte läsas.')}
 }
 
-document.addEventListener('change',e=>{if(e.target.id==='feedfile')readFeed(e.target.files&&e.target.files[0]);if(e.target.id==='import_checked_on'){IMPORT_CHECKED_ON=e.target.value;updateImportSummary()}if(e.target.matches('[data-import-select]')){const r=IMPORT_ROWS.find(x=>x.key===Number(e.target.dataset.importSelect));if(r){r.selected=e.target.checked;IMPORT_CHECKS={campaign:false,reference:false,terms:false};renderImport()}}if(e.target.matches('[data-import-check]')){IMPORT_CHECKS[e.target.dataset.importCheck]=e.target.checked;renderImport()}});
+document.addEventListener('change',e=>{if(e.target.matches('[data-import-group]')){const row=IMPORT_ROWS.find(r=>r.key===Number(e.target.dataset.importGroup));if(row)row.compare_group=e.target.checked?row.groupSuggestion:null}if(e.target.id==='feedfile')readFeed(e.target.files&&e.target.files[0]);if(e.target.id==='import_checked_on'){IMPORT_CHECKED_ON=e.target.value;updateImportSummary()}if(e.target.matches('[data-import-select]')){const r=IMPORT_ROWS.find(x=>x.key===Number(e.target.dataset.importSelect));if(r){r.selected=e.target.checked;IMPORT_CHECKS={campaign:false,reference:false,terms:false};renderImport()}}if(e.target.matches('[data-import-check]')){IMPORT_CHECKS[e.target.dataset.importCheck]=e.target.checked;renderImport()}});
 document.addEventListener('load',e=>{if(!e.target.matches('[data-import-image]'))return;const r=IMPORT_ROWS.find(x=>x.key===Number(e.target.dataset.importImage));if(r){r.image_loaded=true;r.image_failed=false;refreshImportRow(r)}},true);
 document.addEventListener('error',e=>{if(!e.target.matches('[data-import-image]'))return;const r=IMPORT_ROWS.find(x=>x.key===Number(e.target.dataset.importImage));if(r){r.image_loaded=false;r.image_failed=true;r.selected=false;refreshImportRow(r)}},true);
 document.addEventListener('click',e=>{
