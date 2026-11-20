@@ -1714,17 +1714,18 @@ async function loadRewardHistory(){
   }
 }
 
+let favoriteDetails=new Map();
 async function loadFavs(){
-  if(!sb||!user){favs=new Set();render();return}
+  if(!sb||!user){favs.clear();favoriteDetails.clear();render();return}
   const owner=user.id, revision=favoritesRevision;
   try{
-    const {data,error}=await sb.from('favorites').select('deal_id').eq('user_id',owner);
+    const {data,error}=await sb.from('favorites').select('*,deals(*)').eq('user_id',owner);
     if(revision!==favoritesRevision||user?.id!==owner)return;
     if(error)throw error;
-    favs=new Set((Array.isArray(data)?data:[]).map(r=>r.deal_id));
+    favoriteDetails=new Map(data.map(row=>[row.deal_id,{offer:row.deals?norm(row.deals):null,price:row.saved_price}]));
+    favs=new Set(favoriteDetails.keys());
   }catch(e){
     if(revision!==favoritesRevision||user?.id!==owner)return;
-    favs=new Set();
     toast('Kunde inte hämta din sparlista. Försök igen.');
   }
   render();
@@ -2282,14 +2283,52 @@ function codes(){
   if(!CODES.length)return '<h2>Rabattkoder</h2><div class="empty"><b>Inga rabattkoder just nu</b>Kom tillbaka snart.</div>';
   return `<h2>Rabattkoder</h2>${CODES.map(c=>`<div class="row"><div class="logo" style="background:${colr(c.col)}">${esc(c.l)}</div><div class="t"><b>${esc(c.s)}</b><span>${esc(c.d)}</span>${c.a?`<div><a class="golink" href="${esc(c.a)}" target="_blank" rel="sponsored nofollow noopener noreferrer">Till butiken ↗</a> <span class="adl">Annonslänk</span></div>`:''}</div><button class="code" data-copy="${esc(c.code)}" aria-label="Kopiera koden ${esc(c.code)}">${esc(c.code)}</button></div>`).join('')}`}
 
+function favoriteProductKey(o){
+  if(verifiedProductKey(o))return verifiedProductKey(o);
+  // Same retailer, product page and variant for older offers without a verified product key.
+  return o.w?JSON.stringify([o.s,o.w,comparisonKey(o.n)]):'';
+}
+function favoriteUpdate(original,current,best,baseline){
+  if(!best)return '';
+  const other=best.id!==original.id;
+  const lower=baseline!=null && baseline>best.p;
+  if(current && !lower && (!other||best.p>=current.p))return '';
+  const title=!current?'Ny kampanj':other?'Lägre pris hos '+best.s:'Priset har sjunkit';
+  const saving=lower?' · '+kr(baseline-best.p)+' lägre än när du sparade':'';
+  return `<div class="disc"><b>${esc(title)}</b><div>${esc(best.s)} · ${kr(best.p)}${esc(saving)}</div>${other?`<button type="button" class="code" data-store-offer="${Number(best.id)}">Visa erbjudandet</button>`:''}</div>`;
+}
 function list(){
-  const items=DATA.filter(o=>favs.has(o.id));
-  const saved=items.reduce((a,o)=>a+o.o-o.p,0);
+  const live=DATA.filter(o=>isOfferListing(o)&&o.vt>=todayISO());
+  const byId=new Map(live.map(o=>[o.id,o]));
+  const byProduct=new Map();
+  for(const o of live){
+    const key=favoriteProductKey(o);
+    if(key && (!byProduct.has(key)||o.p<byProduct.get(key).p))byProduct.set(key,o);
+  }
+  const items=[];
+  let saved=0,activeCount=0;
+  for(const id of favs){
+    const current=byId.get(id),detail=favoriteDetails.get(id),original=current||detail?.offer;
+    if(!original){
+      items.push(`<div class="row"><div class="t"><b>Erbjudandet är inte tillgängligt</b><button class="code" data-fav="${Number(id)}">Ta bort från sparlistan</button></div></div>`);
+      continue;
+    }
+    const candidate=byProduct.get(favoriteProductKey(original));
+    const best=current && (!candidate || current.p<=candidate.p)?current:candidate;
+    const update=favoriteUpdate(original,current,best,detail?.price);
+    if(current){
+      saved+=Math.max(0,current.o-current.p);activeCount++;
+      items.push('<div>'+update+card(current,items.length)+'</div>');
+    }else if(!dealsInFlight && !err){
+      items.push(`<div class="row"><div class="t"><b>${esc(original.n)}</b><span>${esc(original.s)} · Tidigare erbjudande avslutat</span>${update}<button type="button" class="code" data-fav="${Number(id)}">Ta bort från sparlistan</button></div></div>`);
+    }
+  }
   const acct=`<div class="row"><div class="t"><b>${user?esc(user.email):'Du är inte inloggad'}</b><span>${user?'Din sparlista följer med på alla enheter.':'Logga in för att spara erbjudanden.'}</span></div><button class="code" ${user?'data-logout':'data-login'}>${user?'Logga ut':'Logga in'}</button></div>`;
   const rewardsLink=`<button class="btn reward-link" data-tab="rewards">🏆 Mina Belöningar</button>`;
   const clear=user&&favs.size?`<button type="button" class="btn ghost" data-clear-favorites ${clearingFavorites?'disabled':''}>${clearingFavorites?'Avmarkerar…':'Avmarkera alla erbjudanden'}</button>`:'';
+  if(!items.length && user && favs.size)return `<h2>Sparlista</h2>${acct}${rewardsLink}${clear}<div class="empty">${err?'Kunde inte hämta aktuella priser. <button class="btn" data-retry>Försök igen</button>':'Hämtar sparade fynd…'}</div>`;
   if(!items.length)return `<h2>Sparlista</h2>${acct}${rewardsLink}${clear}<div class="empty"><b>Din sparlista är tom</b>Tryck på hjärtat på ett erbjudande för att spara det här.</div>`;
-  return `<h2>Sparlista</h2>${acct}${rewardsLink}${clear}<div class="sum">Du sparar totalt<b>${kr(saved)}</b>på ${items.length} sparade erbjudanden</div><div class="grid">${items.map(card).join('')}</div>`}
+  return `<h2>Sparlista</h2>${acct}${rewardsLink}${clear}${activeCount?`<div class="sum">Du sparar totalt<b>${kr(saved)}</b>på ${activeCount} aktiva sparade erbjudanden</div>`:''}<div class="grid">${items.join('')}</div>`}
 
 function rewardHistoryItem(r){
   const type=r.transaction_type;
@@ -2463,7 +2502,7 @@ async function clearFavorites(){
   try{
     const {error}=await sb.from('favorites').delete().eq('user_id',owner);
     if(error)throw error;
-    if(user?.id===owner){favs.clear();toast('Alla erbjudanden har avmarkerats.')}
+    if(user?.id===owner){favs.clear();favoriteDetails.clear();toast('Alla erbjudanden har avmarkerats.')}
   }catch(error){
     if(user?.id===owner)toast('Kunde inte avmarkera erbjudandena. Försök igen.');
   }finally{
@@ -2477,18 +2516,26 @@ async function toggleFav(id){
   if(!user){openAuth('Logga in för att spara erbjudanden i din sparlista.');return}
   if(!sb||clearingFavorites||favPending.has(id))return;
   favPending.add(id);
+  const owner=user.id;
   const had=favs.has(id);
+  favoritesRevision++;
   had?favs.delete(id):favs.add(id);updateFavorite(id,!had);
   try{
-    const r=had?await sb.from('favorites').delete().eq('deal_id',id).eq('user_id',user.id):await sb.from('favorites').insert({deal_id:id,user_id:user.id});
+    const r=had?await sb.from('favorites').delete().eq('deal_id',id).eq('user_id',user.id):await sb.from('favorites').insert({deal_id:id,user_id:owner}).select('*').single();
     if(r.error)throw r.error;
+    if(user?.id!==owner)return;
+    if(had)favoriteDetails.delete(id);
+    else favoriteDetails.set(id,{offer:DATA.find(o=>o.id===id),price:r.data.saved_price});
     toast(had?'Borttagen från sparlistan':'Sparad i sparlistan');
   }catch(e){
+    if(user?.id!==owner)return;
     had?favs.add(id):favs.delete(id);
     toast('Det gick inte att uppdatera sparlistan. Försök igen.');
     updateFavorite(id);
   }finally{
     favPending.delete(id);
+    favoritesRevision++;
+    if(!favPending.size)await loadFavs();
   }
 }
 
@@ -2628,6 +2675,7 @@ $('#q').addEventListener('input',e=>{
 
 if(sb){
   sb.auth.onAuthStateChange((ev,session)=>{
+    if(user?.id!==session?.user?.id){favoriteDetails.clear();favs.clear();favoritesRevision++}
     user=session?session.user:null;
     setTimeout(()=>{loadFavs();loadRewards();loadRewardHistory();loadRewardCatalog();loadRewardRedemptions();loadRewardAdminStatus()},0);
   });
