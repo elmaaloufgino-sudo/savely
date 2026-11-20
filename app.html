@@ -1309,6 +1309,9 @@ nav{
   border-color:rgba(230,202,101,.3);
 }
 
+.store-comparison{margin-block:8px}
+.store-comparison summary{cursor:pointer;color:var(--gink);font-weight:700}
+.store-choice{display:grid;justify-items:start;gap:4px;margin-top:8px}
 </style>
 <style>.go.affiliate-go{display:flex;flex-direction:column;align-items:stretch;gap:4px}.affiliate-label{display:block;font-size:12px;line-height:1.4;color:var(--mute)}footer .disc{max-width:60ch;margin:0 auto 12px}</style>
 <style>
@@ -1828,7 +1831,7 @@ function purchaseTerm(o){
   if(bundle)return 'Totalt '+bundle[2]+' vid köp av '+bundle[1]+' st';
   return '';
 }
-function card(o,index=99){const term=purchaseTerm(o);const f=favs.has(o.id);const hasOldPrice=Number(o.o)>0;const sv=hasOldPrice?Math.round((o.o-o.p)*100)/100:null;return `<article class="card" data-product="${o.id}"><div class="tile" style="--tc:${colr(o.col)}"><span class="badge">${o.lc?'Last chance':(offerBadge(o)|| (o.s==='Kappahl'&&/2 för 299/i.test(o.n)?'2 för 299:-':(hasOldPrice?'-'+pct(o)+'%':'Erbjudande')))}</span><button type="button" class="fav ${f?'on':''}" data-fav="${o.id}" onclick="event.preventDefault();event.stopPropagation();toggleFav(Number(this.dataset.fav));return false" aria-pressed="${f}" aria-label="${f?'Ta bort från sparlistan':'Spara i sparlistan'}">${heart}</button>${productVisual(o,index===0)}<span class="ptag">${kr(o.p)}</span></div><div class="info"><div class="store">${esc(o.s)}<span class="cat"> · ${esc(o.c)}</span></div><h3><a class="card-details" href="${esc(productPageUrl(o))}" data-card-details="${o.id}" aria-label="Öppna fyndsidan för ${esc(o.n)}">${esc(o.n)}</a></h3>${hasOldPrice?`<div class="price"><span class="previous-price"><small>Angivet tidigare pris</small><s>${kr(o.o)}</s></span><span class="sv">Spara ${kr(sv)}</span></div>`:''}${term?`<div class="mem">${esc(term)}</div>`:''}${o.u?`<div class="mute">Jmf: ${esc(o.u)}</div>`:''}${o.m?`<span class="mem">Kräver ${esc(o.m)}</span>`:''}${o.cond?`<div class="cond">${esc(o.cond)}</div>`:''}${o.e?`<div class="exp">${clock} ${esc(o.e)}</div>`:''}${o.k?`<div class="chk">Kontrollerad ${dm(o.k)}</div>`:''}${o.a?`<div class="go affiliate-go"><span class="affiliate-label">Annonslänk</span><a href="${esc(o.a)}" target="_blank" rel="sponsored nofollow noopener noreferrer">Till butiken ↗</a></div>`:(o.w?`<div class="go"><a class="pl" href="${esc(o.w)}" target="_blank" rel="noopener noreferrer">Till butiken ↗</a></div>`:`<div class="go"><button type="button" class="offer-cta" data-product-cta="${o.id}" aria-label="Visa erbjudandet för ${esc(o.n)}">Visa detaljer</button></div>`)}</div></article>`}
+function card(o,index=99){const term=purchaseTerm(o);const f=favs.has(o.id);const hasOldPrice=Number(o.o)>0;const sv=hasOldPrice?Math.round((o.o-o.p)*100)/100:null;return `<article class="card" data-product="${o.id}"><div class="tile" style="--tc:${colr(o.col)}"><span class="badge">${o.lc?'Last chance':(offerBadge(o)|| (o.s==='Kappahl'&&/2 för 299/i.test(o.n)?'2 för 299:-':(hasOldPrice?'-'+pct(o)+'%':'Erbjudande')))}</span><button type="button" class="fav ${f?'on':''}" data-fav="${o.id}" onclick="event.preventDefault();event.stopPropagation();toggleFav(Number(this.dataset.fav));return false" aria-pressed="${f}" aria-label="${f?'Ta bort från sparlistan':'Spara i sparlistan'}">${heart}</button>${productVisual(o,index===0)}<span class="ptag">${kr(o.p)}</span></div><div class="info"><div class="store">${esc(o.s)}<span class="cat"> · ${esc(o.c)}</span></div><h3><a class="card-details" href="${esc(productPageUrl(o))}" data-card-details="${o.id}" aria-label="Öppna fyndsidan för ${esc(o.n)}">${esc(o.n)}</a></h3>${hasOldPrice?`<div class="price"><span class="previous-price"><small>Angivet tidigare pris</small><s>${kr(o.o)}</s></span><span class="sv">Spara ${kr(sv)}</span></div>`:''}${storeComparison(o)}${term?`<div class="mem">${esc(term)}</div>`:''}${o.u?`<div class="mute">Jmf: ${esc(o.u)}</div>`:''}${o.m?`<span class="mem">Kräver ${esc(o.m)}</span>`:''}${o.cond?`<div class="cond">${esc(o.cond)}</div>`:''}${o.e?`<div class="exp">${clock} ${esc(o.e)}</div>`:''}${o.k?`<div class="chk">Kontrollerad ${dm(o.k)}</div>`:''}${o.a?`<div class="go affiliate-go"><span class="affiliate-label">Annonslänk</span><a href="${esc(o.a)}" target="_blank" rel="sponsored nofollow noopener noreferrer">Till butiken ↗</a></div>`:(o.w?`<div class="go"><a class="pl" href="${esc(o.w)}" target="_blank" rel="noopener noreferrer">Till butiken ↗</a></div>`:`<div class="go"><button type="button" class="offer-cta" data-product-cta="${o.id}" aria-label="Visa erbjudandet för ${esc(o.n)}">Visa detaljer</button></div>`)}</div></article>`}
 
 let galleryRequest;
 let moveGallery=null;
@@ -2103,10 +2106,42 @@ function searchRelevance(offer,query,terms){
   return 0;
 }
 
+function verifiedProductKey(o){
+  const key=comparisonKey(o.g);
+  return /^produkt:\S/.test(key)?key:'';
+}
+function groupListingOffers(offers){
+  const groups=new Map(), result=[];
+  for(const offer of offers){
+    const key=verifiedProductKey(offer);
+    // A shared unit-price group (e.g. coffee) does not identify a product.
+    if(!key){result.push(offer);continue}
+    if(!groups.has(key)){
+      groups.set(key,[]);
+      result.push(groups.get(key));
+    }
+    groups.get(key).push(offer);
+  }
+  return result.map(entry=>{
+    if(!Array.isArray(entry))return entry;
+    const stores=new Map();
+    for(const offer of entry){
+      const store=comparisonKey(offer.s);
+      if(!stores.has(store)||offer.p<stores.get(store).p)stores.set(store,offer);
+    }
+    const choices=[...stores.values()].sort((a,b)=>a.p-b.p||a.s.localeCompare(b.s,'sv'));
+    return choices.length>1?{...choices[0],storeChoices:choices}:choices[0];
+  });
+}
+function storeComparison(o){
+  if(!o.storeChoices)return '';
+  const rows=o.storeChoices.map(item=>`<div class="store-choice"><button type="button" class="chip" data-store-offer="${Number(item.id)}">${esc(item.s)} · ${kr(item.p)}</button>${item.m?`<small>Kräver ${esc(item.m)}</small>`:''}${item.cond?`<small>${esc(item.cond)}</small>`:''}</div>`).join('');
+  return `<details class="store-comparison"><summary>Jämför ${o.storeChoices.length} butiker</summary><small>Produktpris före eventuell frakt</small>${rows}</details>`;
+}
 function offerResults(t){
   const terms=t?t.split(' '):[];
   const offerData=DATA.filter(isOfferListing);
-  const list=offerData.filter(o=>(cat==='Alla'||o.c===cat)&&(!hideMem||!o.m)&&terms.every(term=>(o.searchText||searchKey([o.s,o.n,o.c,o.u,o.cond].join(' '))).includes(term)));
+  const list=groupListingOffers(offerData.filter(o=>(cat==='Alla'||o.c===cat)&&(!hideMem||!o.m)&&terms.every(term=>(o.searchText||searchKey([o.s,o.n,o.c,o.u,o.cond].join(' '))).includes(term))));
   let sorted=list;
   if(sortMode==='recommended'&&cat==='Alla'&&!t)sorted=recommendedStartOffers(list);
   else if(sortMode==='recommended'&&t){
@@ -2198,12 +2233,15 @@ function comparisonGroups(offers,today){
   for(const o of offers){
     if((o.vt&&o.vt<today)||!comparisonKey(o.s)||!comparisonKey(o.n)||!Number.isFinite(o.p)||o.p<=0)continue;
     const unit=String(o.u||'').match(/kr\s*\/\s*(kg|hg|g|ml|cl|dl|liter|l|st(?:yck)?|meter|m)\b/i);
-    if(comparisonKey(o.g)&&unit&&Number.isFinite(o.uv)&&o.uv>0){
+    if(!verifiedProductKey(o)&&comparisonKey(o.g)&&unit&&Number.isFinite(o.uv)&&o.uv>0){
       const basis=unit[1].toLowerCase().replace(/^liter$/,'l').replace(/^styck$/,'st').replace(/^meter$/,'m');
       add(unitGroups,JSON.stringify([comparisonKey(o.g),basis]),o.g.trim()+' · kr/'+basis,o,o.uv);
     }
     const name=comparisonKey(o.n);
-    if(name.split(' ').length>=2&&/[a-zåäö]{3}/i.test(name)&&/\d/.test(name)){
+    const verified=verifiedProductKey(o);
+    if(verified){
+      add(productGroups,verified,o.n.trim(),o,o.p);
+    }else if(name.split(' ').length>=2&&/[a-zåäö]{3}/i.test(name)&&/\d/.test(name)){
       add(productGroups,JSON.stringify([comparisonKey(o.c),name]),o.n.trim(),o,o.p);
     }
   }
@@ -2528,6 +2566,7 @@ document.addEventListener('click',e=>{
   if(d.togglePassword!==undefined){const passwordInput=$('#pw');if(passwordInput){const show=passwordInput.type==='password';passwordInput.type=show?'text':'password';b.setAttribute('aria-pressed',String(show));b.setAttribute('aria-label',show?'Dölj lösenord':'Visa lösenord');b.title=show?'Dölj lösenord':'Visa lösenord'}return}
   if(d.retryCodes!==undefined){loadCodes();return}
   if(d.clearFavorites!==undefined){clearFavorites();return}
+  if(d.storeOffer!==undefined){openProduct(Number(d.storeOffer),false,b);return}
   if(d.relatedId!==undefined){openProduct(Number(d.relatedId));return}
   if(d.productPrev!==undefined){stepProduct(-1);return}
   if(d.productNext!==undefined){stepProduct(1);return}
@@ -2557,7 +2596,7 @@ document.addEventListener('click',e=>{
   const detailsButton=e.target.closest('[data-card-details]');
   if(detailsButton){if(e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();openProduct(Number(detailsButton.dataset.cardDetails),false,detailsButton);}return}
   const cardEl=e.target.closest('.card[data-product]');
-  if(!cardEl||e.target.closest('a,button,input,select,textarea,[data-fav]'))return;
+  if(!cardEl||e.target.closest('a,button,input,select,textarea,details,[data-fav]'))return;
   openProduct(Number(cardEl.dataset.product),false,cardEl.querySelector("[data-card-details]"));
 });
 document.addEventListener('keydown',e=>{

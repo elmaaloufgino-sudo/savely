@@ -106,7 +106,7 @@ function formHTML(d){
   ${priceChecksHTML('f')}
   <div class="two"><div><label for="f_until">Giltighetstext</label><input id="f_until" value="${esc(d.valid_until)}" placeholder="söndag eller 30/10"></div><div><label for="f_mem">Medlemskap (valfritt)</label><input id="f_mem" value="${esc(d.membership)}" placeholder="ICA Stammis"></div></div>
   <div class="two"><div><label for="f_utext">Jämförpristext (valfritt)</label><input id="f_utext" value="${esc(d.unit_text)}" placeholder="87,78 kr/kg"></div><div><label for="f_uprice">Jämförpris (tal)</label><input id="f_uprice" inputmode="decimal" value="${esc(d.unit_price)}" placeholder="87.78"></div></div>
-  <label for="f_group">Jämförelsegrupp (valfritt, samma namn jämförs tillsammans)</label><input id="f_group" value="${esc(d.compare_group)}" placeholder="Kyckling">
+  <label for="f_group">Jämförelsegrupp (valfritt, samma namn jämförs tillsammans)</label><input id="f_group" value="${esc(d.compare_group)}" placeholder="Kyckling"><small>För identiska varor hos flera butiker: ange produkt: följt av samma kontrollerade EAN eller tillverkarens fullständiga modellkod. Kontrollera färg, storlek, förpackning och skick. Använd en separat nyckel för fyndvaror.</small>
   <label for="f_aff">Butikslänk (valfri affiliatelänk, måste börja med https://)</label><input id="f_aff" type="url" value="${esc(d.affiliate_url)}" placeholder="https://…">
   <label for="f_url">Butik offer page (optional, a normal link, must start with https://)</label><input id="f_url" type="url" value="${esc(d.shop_url)}" placeholder="https://…">
   <div class="two"><div><label for="f_vt">Gäller t.o.m. (obligatoriskt datum; erbjudandet döljs efter denna dag)</label><input id="f_vt" type="date" value="${esc(d.valid_to)}"></div><div><label for="f_chk">Senast kontrollerad (datum)</label><input id="f_chk" type="date" max="${todayISO()}" value="${esc(d.checked_on)}"></div></div>
@@ -222,8 +222,23 @@ function collect(){
   if(chk>todayISO())return {err:'Kontrolldatumet kan inte ligga i framtiden.'};
   return {p:{store,logo,color:v('f_color'),category:v('f_cat'),name,price,old_price:old,image_url:image,unit_text:v('f_utext').trim()||null,unit_price:num(v('f_uprice')),membership:v('f_mem').trim()||null,affiliate_url:aff||null,shop_url:url||null,valid_to:vt,checked_on:chk,conditions:cond||null,valid_until:until,compare_group:v('f_group').trim()||null}};
 }
+function retailerArticle(row){
+  if(!row.shop_url)return '';
+  try{
+    const url=new URL(row.shop_url);
+    const host=url.hostname.replace(/^www\./,'');
+    const pattern=host==='kjell.com'?/-p(\d+)\/?$/:host==='elgiganten.se'?/\/(\d+)\/?$/:null;
+    const match=pattern && url.pathname.match(pattern);
+    return match?host+'|'+match[1]:'';
+  }catch{return ''}
+}
+function existingArticle(row){
+  const key=retailerArticle(row);
+  return key && DATA.some(d=>d.id!==editId && (!d.valid_to||d.valid_to>=todayISO()) && retailerArticle(d)===key);
+}
 async function save(){
   const r=collect();if(r.err)return setMsg(r.err);
+  if(existingArticle(r.p))return setMsg('Butikens artikel finns redan. Redigera det befintliga erbjudandet.');
   setMsg('Sparar…');
   let res;
   if(editId){res=await sb.from('deals').update(r.p).eq('id',editId).select()}
@@ -301,7 +316,7 @@ function importIssue(r){
  if(!r.valid_to)return 'Riktigt slutdatum saknas';
  if(r.valid_to<todayISO())return 'Erbjudandet har redan gått ut';
  if(!r.affiliate_url&&!r.shop_url)return 'Produktlänk eller affiliatelänk saknas';
- if(r.duplicate)return 'Möjlig dubblett';
+ if(r.duplicate||existingArticle(r))return 'Möjlig dubblett';
  return '';
 }
 function updateImportSummary(){
@@ -338,8 +353,8 @@ async function publishSelected(){
  if(!Object.values(IMPORT_CHECKS).every(Boolean))return toast('Bekräfta alla tre kontrollerna först');
  const rows=IMPORT_ROWS.filter(r=>r.selected&&!importIssue(r));
  if(!rows.length)return toast('Markera godkända produkter först');
- const keys=new Set();
- for(const r of rows){const k=(r.store+'|'+r.name).toLowerCase();if(keys.has(k)||DATA.some(d=>(String(d.store)+'|'+String(d.name)).toLowerCase()===k))return toast('Dubblett upptäckt. Läs in produktflödet på nytt.');keys.add(k)}
+ const keys=new Set(),articles=new Set();
+ for(const r of rows){const article=retailerArticle(r);if(article&&articles.has(article))return toast('Samma butiksartikel finns flera gånger i urvalet');if(article)articles.add(article);const k=(r.store+'|'+r.name).toLowerCase();if(keys.has(k)||DATA.some(d=>(String(d.store)+'|'+String(d.name)).toLowerCase()===k))return toast('Dubblett upptäckt. Läs in produktflödet på nytt.');keys.add(k)}
  const list=rows.map(r=>r.store+': '+r.name+' — '+kr(r.price)+' — giltig t.o.m. '+r.valid_until).join('\\n');
  if(!confirm('Publicera '+rows.length+' valda produkter?\\n\\n'+list+'\\n\\nKontrollera att varje bild visar rätt produkt. Fortsätt?'))return;
  const firstId=DATA.reduce((m,d)=>Math.max(m,Number(d.id)||0),0)+1;
