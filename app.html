@@ -1774,10 +1774,19 @@ async function loadFavs(){
   if(!sb||!user){favs.clear();favoriteDetails.clear();render();return}
   const owner=user.id, revision=favoritesRevision;
   try{
-    const {data,error}=await sb.from('favorites').select('*,deals(*)').eq('user_id',owner);
+    const readFavorites=()=>sb.from('favorites').select('*,deals(*)').eq('user_id',owner);
+    let {data,error}=await readFavorites();
+    if(!error && user?.id===owner && revision===favoritesRevision &&
+       data.some(row=>row.saved_price==null && row.deals?.price>0 && row.deals.valid_to>=todayISO())){
+      const tracking=await sb.rpc('start_favorite_price_tracking');
+      if(!tracking.error){
+        const fresh=await readFavorites();
+        if(!fresh.error)data=fresh.data;
+      }
+    }
     if(revision!==favoritesRevision||user?.id!==owner)return;
     if(error)throw error;
-    favoriteDetails=new Map(data.map(row=>[row.deal_id,{offer:row.deals?norm(row.deals):null,price:row.saved_price}]));
+    favoriteDetails=new Map(data.map(row=>[row.deal_id,{offer:row.deals?norm(row.deals):null,price:row.saved_price,since:row.tracking_started_on}]));
     favs=new Set(favoriteDetails.keys());
   }catch(e){
     if(revision!==favoritesRevision||user?.id!==owner)return;
@@ -2334,14 +2343,16 @@ function favoriteProductKey(o){
   // Same retailer, product page and variant for older offers without a verified product key.
   return o.w?JSON.stringify([o.s,o.w,comparisonKey(o.n)]):'';
 }
-function favoriteUpdate(original,current,best,baseline){
-  if(!best)return '';
-  const other=best.id!==original.id;
-  const lower=baseline!=null && baseline>best.p;
-  if(current && !lower && (!other||best.p>=current.p))return '';
-  const title=!current?'Ny kampanj':other?'Lägre pris hos '+best.s:'Priset har sjunkit';
-  const saving=lower?' · '+kr(baseline-best.p)+' lägre än när du sparade':'';
-  return `<div class="disc"><b>${esc(title)}</b><div>${esc(best.s)} · ${kr(best.p)}${esc(saving)}</div>${other?`<button type="button" class="code" data-store-offer="${Number(best.id)}">Visa erbjudandet</button>`:''}</div>`;
+function favoriteUpdate(original,current,best,detail){
+  let html='';
+  const baseline=Number(detail?.price);
+  if(current && current.p>0 && baseline>current.p){
+    const since=detail.since?'sedan '+new Date(detail.since+'T12:00:00').toLocaleDateString('sv-SE',{day:'numeric',month:'long',year:'numeric'}):'sedan du sparade';
+    html=`<div class="disc"><b>Priset har sjunkit</b><div>${kr(Math.round((baseline-current.p)*100)/100)} billigare ${esc(since)}</div><small>${kr(baseline)} → ${kr(current.p)} hos ${esc(current.s)}</small></div>`;
+  }
+  if(!best || best.id===original.id || (current && best.p>=current.p))return html;
+  const title=current?'Lägre pris hos '+best.s:'Ny kampanj';
+  return html+`<div class="disc"><b>${esc(title)}</b><div>${esc(best.s)} · ${kr(best.p)}</div><button type="button" class="code" data-store-offer="${Number(best.id)}">Visa erbjudandet</button></div>`;
 }
 function list(){
   const live=DATA.filter(o=>isOfferListing(o)&&o.vt>=todayISO());
@@ -2361,7 +2372,7 @@ function list(){
     }
     const candidate=byProduct.get(favoriteProductKey(original));
     const best=current && (!candidate || current.p<=candidate.p)?current:candidate;
-    const update=favoriteUpdate(original,current,best,detail?.price);
+    const update=favoriteUpdate(original,current,best,detail);
     if(current){
       saved+=Math.max(0,current.o-current.p);activeCount++;
       items.push('<div>'+update+card(current,items.length)+'</div>');
