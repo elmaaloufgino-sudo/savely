@@ -30,7 +30,8 @@
 <script>document.documentElement.classList.add('js')</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js">
+<link rel="preconnect" href="https://ebmqzrejrpijitxeggsl.supabase.co" crossorigin>
 <link rel="preload" href="https://fonts.gstatic.com/s/cinzel/v26/8vIJ7ww63mVu7gt79mT7PkRXMw.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Cinzel:wght@600;700&display=optional">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Cinzel:wght@600;700&display=optional" media="print" onload="this.media='all'">
@@ -1525,6 +1526,15 @@ function appendOffers(){
   visibleOffers+=next.length;
   if(visibleOffers>=pendingOffers.length)button.remove();
 }
+const previewKey='fyndaren-deals-preview-v1';
+function readDealPreview(){
+  try{
+    const preview=JSON.parse(localStorage.getItem(previewKey));
+    const age=Date.now()-preview.savedAt;
+    if(!(age>=0 && age<15*60*1000) || !Array.isArray(preview.rows))return [];
+    return preview.rows.slice(0,offerBatchSize).map(norm).filter(o=>o.vt && o.vt>=todayISO());
+  }catch{return []}
+}
 let dealsInFlight=false;
 let resumeDeals=null;
 async function loadDeals(){
@@ -1533,17 +1543,22 @@ async function loadDeals(){
   const active=resumeDeals?.active||[];
   let cursor=resumeDeals?.cursor??null;
   let first=cursor===null;
-  loading=!active.some(isOfferListing);
+  if(first && !DATA.length)DATA=readDealPreview();
+  loading=!DATA.some(isOfferListing);
+  if(!loading)document.documentElement.classList.add('deals-ready');
   err='';render();
   try{
     if(!sb)throw new Error('supabase');
     while(true){
       const limit=first?offerBatchSize:1000;
-      let request=sb.from('deals').select('*').order('id',{ascending:false});
+      let request=sb.from('deals').select('*').gte('valid_to',todayISO()).order('id',{ascending:false});
       if(cursor!==null)request=request.lt('id',cursor);
       const {data,error}=await request.limit(limit);
       if(error)throw error;
       active.push(...data.map(norm).filter(o=>o.vt&&o.vt>=todayISO()));
+      if(first){
+        try{localStorage.setItem(previewKey,JSON.stringify({savedAt:Date.now(),rows:data}))}catch{}
+      }
       if(data.length<limit)break;
       cursor=data[data.length-1].id;
       if(first && active.some(isOfferListing)){
@@ -1561,7 +1576,7 @@ async function loadDeals(){
     if(opened)relatedPanel.innerHTML=relatedProductContent(opened);
   }catch(e){
     resumeDeals={active,cursor};
-    DATA=active.slice();
+    if(active.length)DATA=active.slice();
     err='Kunde inte hämta erbjudanden. Kontrollera din anslutning och försök igen.';
   }
   dealsInFlight=false;
