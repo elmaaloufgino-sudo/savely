@@ -1313,6 +1313,20 @@ nav{
 .store-comparison summary{cursor:pointer;color:var(--gink);font-weight:700}
 .store-choice{display:grid;justify-items:start;gap:4px;margin-top:8px}
 .new-deals{position:fixed;bottom:calc(86px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:8;background:#e6ca65;color:#171512;border:0;border-radius:999px;padding:12px 20px;font:inherit;font-weight:700;box-shadow:0 3px 14px #0006;cursor:pointer;white-space:nowrap}
+/* Two curtain panels meet behind the round app mark. */
+#deal-entrance{position:fixed;inset:0;width:100%;height:100%;max-width:none;max-height:none;margin:0;padding:0;border:0;background:transparent;color:inherit;overflow:hidden}
+#deal-entrance[open]{display:grid;place-items:center}
+#deal-entrance::backdrop{background:transparent}
+#deal-entrance::before,#deal-entrance::after{content:"";position:absolute;inset:0 49.9% 0 0;background:linear-gradient(90deg,#141418,#1e1c1a);transition:transform 420ms cubic-bezier(.45,0,.2,1)}
+#deal-entrance::after{inset:0 0 0 50%;background:linear-gradient(90deg,#1e1c1a,#141418)}
+#deal-entrance.reveal::before{transform:translateX(-101%)}
+#deal-entrance.reveal::after{transform:translateX(101%)}
+.entrance-mark{position:relative;z-index:1;padding:7px;transition:opacity 180ms,transform 250ms}
+.entrance-mark img{display:block;border-radius:50%}
+.entrance-mark::before{content:"";position:absolute;inset:0;border-radius:50%;border:3px solid #65552e;border-top-color:#ffe49a;border-right-color:#d4af37;animation:entrance-spin 1s linear infinite}
+.reveal .entrance-mark{opacity:0;transform:scale(.86)}
+@keyframes entrance-spin{to{transform:rotate(1turn)}}
+@media(prefers-reduced-motion:reduce){#deal-entrance::before,#deal-entrance::after,.entrance-mark{transition:none}.entrance-mark::before{animation:none}}
 </style>
 <style>.go.affiliate-go{display:flex;flex-direction:column;align-items:stretch;gap:4px}.affiliate-label{display:block;font-size:12px;line-height:1.4;color:var(--mute)}footer .disc{max-width:60ch;margin:0 auto 12px}</style>
 <style>
@@ -1431,6 +1445,36 @@ nav{
 <button class="back-to-top" id="back-to-top" type="button" aria-label="Till toppen" title="Till toppen" hidden>
   <svg aria-hidden="true" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
 </button>
+<dialog id="deal-entrance" aria-label="Fyndaren laddar erbjudanden">
+  <div class="entrance-mark"><img src="icon-192.png" width="84" height="84" alt=""></div>
+</dialog>
+<script>
+const entrance=document.getElementById('deal-entrance');
+let entranceTimer,entranceCloseTimer,entranceGuard;
+function queueEntrance(){
+  if(entrance.open||entranceTimer)return;
+  entranceTimer=setTimeout(()=>{
+    entranceTimer=null;
+    entrance.showModal();
+    entranceGuard=setTimeout(finishEntrance,12000);
+  },180);
+}
+function finishEntrance(){
+  clearTimeout(entranceTimer);
+  entranceTimer=null;
+  clearTimeout(entranceGuard);
+  if(!entrance.open||entranceCloseTimer)return;
+  const close=()=>{
+    entrance.close();
+    entrance.classList.remove('reveal');
+    entranceCloseTimer=null;
+  };
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){close();return}
+  entrance.classList.add('reveal');
+  entranceCloseTimer=setTimeout(close,430);
+}
+queueEntrance();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 const SUPABASE_URL='https://ebmqzrejrpijitxeggsl.supabase.co';
@@ -1601,6 +1645,8 @@ async function loadDeals(){
   let first=cursor===null;
   if(first && !DATA.length)DATA=readDealPreview();
   loading=!DATA.some(isOfferListing);
+  if(loading && tab==='offers')queueEntrance();
+  else finishEntrance();
   if(!loading)document.documentElement.classList.add('deals-ready');
   err='';render();
   try{
@@ -1622,6 +1668,7 @@ async function loadDeals(){
         loading=false;
         render();
         document.documentElement.classList.add('deals-ready');
+        finishEntrance();
       }
       first=false;
     }
@@ -1641,6 +1688,7 @@ async function loadDeals(){
   loading=false;
   anim=true;render();
   document.documentElement.classList.add('deals-ready');
+  finishEntrance();
 }
 async function loadRewards(){
   if(!sb||!user){
