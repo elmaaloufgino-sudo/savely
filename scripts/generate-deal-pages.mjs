@@ -54,7 +54,7 @@ const publicKey = appHtml.match(/const SUPABASE_KEY='([^']+)'/)?.[1];
 if (!supabaseUrl || !publicKey) throw new Error("Could not read the public Supabase configuration from app.html.");
 
 const endpoint = new URL("/rest/v1/deals", supabaseUrl);
-endpoint.searchParams.set("select", "id,store,name,category,price,old_price,unit_text,membership,affiliate_url,shop_url,valid_to,valid_until,checked_on,conditions,image_url");
+endpoint.searchParams.set("select", "id,store,name,category,price,old_price,verified_30d_price,price_source_url,minimum_total,plan_source_url,plan_monthly,plan_months,plan_fees,unit_text,membership,affiliate_url,shop_url,valid_to,valid_until,checked_on,conditions,image_url");
 endpoint.searchParams.set("order", "id.asc");
 endpoint.searchParams.set("limit", "5000");
 
@@ -148,8 +148,10 @@ function makePage(deal, byCategory) {
   const isAffiliate = !!validHttps(deal.affiliate_url);
   const price = money(deal.price);
   const oldPrice = Number(deal.old_price);
+  const basis = deal.verified_30d_price != null && Number(deal.verified_30d_price) === oldPrice && validHttps(deal.price_source_url);
+  const planSource = validHttps(deal.plan_source_url);
   const previousPrice = Number.isFinite(oldPrice) && oldPrice > Number(deal.price)
-    ? '<p class="old-price">Tidigare pris enligt kampanjuppgiften: <s>' + html(money(oldPrice)) + '</s></p>'
+    ? '<p class="old-price">' + (basis ? '<a href="' + html(basis) + '">Verifierat lägsta pris 30 dagar</a>' : 'Tidigare pris enligt kampanjuppgiften') + ': <s>' + html(money(oldPrice)) + '</s></p>'
     : "";
   const expiry = validTo
     ? "Gäller till och med " + dateLabel(validTo)
@@ -219,6 +221,7 @@ function makePage(deal, byCategory) {
     '<h1>' + html(deal.name) + '</h1>',
     '<div class="price">' + html(price) + '</div>',
     previousPrice,
+    planSource && deal.minimum_total != null ? '<p class="info"><b>Minst ' + html(money(deal.minimum_total)) + ' med abonnemang</b> · ' + html(money(deal.price)) + ' + ' + html(String(deal.plan_months)) + ' mån × ' + html(money(deal.plan_monthly)) + ' + avgifter ' + html(money(deal.plan_fees)) + '. <a href="' + html(planSource) + '">Abonnemangsvillkor</a></p>' : "",
     deal.unit_text ? '<p class="info"><b>Jämförpris:</b> ' + html(deal.unit_text) + '</p>' : "",
     deal.membership ? '<p class="info"><b>Medlemskap:</b> ' + html(deal.membership) + '</p>' : "",
     !expired && deal.editorialDescription ? '<p class="info">' + html(deal.editorialDescription) + '</p>' :

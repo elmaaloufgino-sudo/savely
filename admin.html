@@ -103,7 +103,13 @@ function formHTML(d){
   <p class="import-help">Bilden måste kunna laddas och visa rätt produkt. Använd en direktlänk till själva produktbilden.</p>
   <div class="two"><div><label for="f_price">Kampanjpris (kr)</label><input id="f_price" inputmode="decimal" value="${esc(d.price)}"></div><div><label for="f_old">Tidigare lägsta pris (30 dagar, kr)</label><input id="f_old" inputmode="decimal" value="${esc(d.old_price)}"></div></div>
   <p class="import-help">Vid prissänkningar ska jämförelsepriset vara butikens lägsta pris under de 30 dagarna före prissänkningen – inte ett rekommenderat pris. Kontrollera butikens prisunderlag innan du publicerar. Se <a href="https://www.konsumentverket.se/marknadsratt-foretag/prissankningar-regler-for-foretag/" target="_blank" rel="noopener noreferrer">Konsumentverkets vägledning</a>.</p>
+  <label for="f_basis_source">Källa för 30-dagarspriset (butikens produktsida används om tomt)</label><input id="f_basis_source" type="url" value="${esc(d.price_source_url)}">
   ${priceChecksHTML('f')}
+  <details><summary>Obligatoriskt abonnemang</summary><p>Fyll i alla fyra fält när kostnaden är verifierad. Ange 0 om obligatoriska engångsavgifter saknas. Använd bara för avtal med samma månadsavgift hela minimiperioden.</p>
+  <label for="f_monthly">Månadsavgift (kr)</label><input id="f_monthly" inputmode="decimal" value="${esc(d.plan_monthly)}">
+  <label for="f_months">Minsta antal betalda månader</label><input id="f_months" inputmode="numeric" value="${esc(d.plan_months)}">
+  <label for="f_fees">Övriga obligatoriska avgifter totalt (kr)</label><input id="f_fees" inputmode="decimal" value="${esc(d.plan_fees)}">
+  <label for="f_plan_source">Källa till abonnemangsvillkoren</label><input id="f_plan_source" type="url" value="${esc(d.plan_source_url)}"></details>
   <div class="two"><div><label for="f_until">Giltighetstext</label><input id="f_until" value="${esc(d.valid_until)}" placeholder="söndag eller 30/10"></div><div><label for="f_mem">Medlemskap (valfritt)</label><input id="f_mem" value="${esc(d.membership)}" placeholder="ICA Stammis"></div></div>
   <div class="two"><div><label for="f_utext">Jämförpristext (valfritt)</label><input id="f_utext" value="${esc(d.unit_text)}" placeholder="87,78 kr/kg"></div><div><label for="f_uprice">Jämförpris (tal)</label><input id="f_uprice" inputmode="decimal" value="${esc(d.unit_price)}" placeholder="87.78"></div></div>
   <label for="f_group">Jämförelsegrupp (valfritt, samma namn jämförs tillsammans)</label><input id="f_group" value="${esc(d.compare_group)}" placeholder="Kyckling"><small>För identiska varor hos flera butiker: ange produkt: följt av samma kontrollerade EAN eller tillverkarens fullständiga modellkod. Kontrollera färg, storlek, förpackning och skick. Använd en separat nyckel för fyndvaror.</small>
@@ -220,7 +226,15 @@ function collect(){
   if(!aff&&!url)return {err:'Lägg till en direktlänk till exakt produkt eller erbjudande.'};
   if(!chk)return {err:'Ange datum när pris, villkor och produktlänk senast kontrollerades.'};
   if(chk>todayISO())return {err:'Kontrolldatumet kan inte ligga i framtiden.'};
-  return {p:{store,logo,color:v('f_color'),category:v('f_cat'),name,price,old_price:old,image_url:image,unit_text:v('f_utext').trim()||null,unit_price:num(v('f_uprice')),membership:v('f_mem').trim()||null,affiliate_url:aff||null,shop_url:url||null,valid_to:vt,checked_on:chk,conditions:cond||null,valid_until:until,compare_group:v('f_group').trim()||null}};
+  const source=v('f_basis_source').trim()||url;
+  if(source&&!httpsUrl(source))return {err:'Ange en giltig HTTPS-länk till prisunderlaget.'};
+  const amounts=['f_monthly','f_months','f_fees'].map(id=>v(id).trim());
+  const planSource=v('f_plan_source').trim();
+  const hasPlan=!!planSource||amounts.some(Boolean);
+  if(hasPlan&&(!httpsUrl(planSource)||!amounts.every(x=>/^\d+(?:[.,]\d{1,2})?$/.test(x))||
+    !/^[1-9]\d*$/.test(amounts[1])))return {err:'Ange månadsavgift, minst en hel månad, alla engångsavgifter och källa.'};
+  const [monthly,months,fees]=amounts.map(num);
+  return {p:{verified_30d_price:source?old:null,price_source_url:source||null,plan_monthly:monthly,plan_months:months,plan_fees:fees,plan_source_url:planSource||null,store,logo,color:v('f_color'),category:v('f_cat'),name,price,old_price:old,image_url:image,unit_text:v('f_utext').trim()||null,unit_price:num(v('f_uprice')),membership:v('f_mem').trim()||null,affiliate_url:aff||null,shop_url:url||null,valid_to:vt,checked_on:chk,conditions:cond||null,valid_until:until,compare_group:v('f_group').trim()||null}};
 }
 function retailerArticle(row){
   if(!row.shop_url)return '';
@@ -358,7 +372,7 @@ async function publishSelected(){
  const list=rows.map(r=>r.store+': '+r.name+' — '+kr(r.price)+' — giltig t.o.m. '+r.valid_until).join('\\n');
  if(!confirm('Publicera '+rows.length+' valda produkter?\\n\\n'+list+'\\n\\nKontrollera att varje bild visar rätt produkt. Fortsätt?'))return;
  const firstId=DATA.reduce((m,d)=>Math.max(m,Number(d.id)||0),0)+1;
- const payload=rows.map((r,i)=>{const parts=r.store.trim().split(/\s+/);const logo=parts.length>1?parts.map(x=>x[0]).join('').slice(0,3).toUpperCase():r.store.slice(0,3).toUpperCase();return {id:firstId+i,store:r.store,logo,color:'#10b981',category:r.category||'Övrigt',name:r.name,price:r.price,old_price:r.old_price,image_url:r.image_url,affiliate_url:r.affiliate_url||null,shop_url:r.shop_url||null,valid_until:r.valid_until,valid_to:r.valid_to,checked_on:IMPORT_CHECKED_ON,conditions:r.conditions||null};});
+ const payload=rows.map((r,i)=>{const parts=r.store.trim().split(/\s+/);const logo=parts.length>1?parts.map(x=>x[0]).join('').slice(0,3).toUpperCase():r.store.slice(0,3).toUpperCase();return {id:firstId+i,store:r.store,logo,color:'#10b981',category:r.category||'Övrigt',name:r.name,price:r.price,old_price:r.old_price,verified_30d_price:r.shop_url?r.old_price:null,price_source_url:r.shop_url||null,image_url:r.image_url,affiliate_url:r.affiliate_url||null,shop_url:r.shop_url||null,valid_until:r.valid_until,valid_to:r.valid_to,checked_on:IMPORT_CHECKED_ON,conditions:r.conditions||null};});
  const btn=$('[data-publish-selected]');if(btn){btn.disabled=true;btn.textContent='Sparar…'}
  const result=await sb.from('deals').insert(payload).select();
  if(result.error||!result.data||result.data.length!==payload.length){const m=$('#publishmsg');if(m)m.textContent='Det gick inte att bekräfta sparandet. Kontrollera erbjudandelistan innan du försöker igen.';if(btn){btn.disabled=false;btn.textContent='Publicera markerade produkter'}return}
