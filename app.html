@@ -1312,6 +1312,7 @@ nav{
 .store-comparison{margin-block:8px}
 .store-comparison summary{cursor:pointer;color:var(--gink);font-weight:700}
 .store-choice{display:grid;justify-items:start;gap:4px;margin-top:8px}
+.new-deals{position:fixed;bottom:calc(86px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:8;background:#e6ca65;color:#171512;border:0;border-radius:999px;padding:12px 20px;font:inherit;font-weight:700;box-shadow:0 3px 14px #0006;cursor:pointer;white-space:nowrap}
 </style>
 <style>.go.affiliate-go{display:flex;flex-direction:column;align-items:stretch;gap:4px}.affiliate-label{display:block;font-size:12px;line-height:1.4;color:var(--mute)}footer .disc{max-width:60ch;margin:0 auto 12px}</style>
 <style>
@@ -1540,6 +1541,58 @@ function readDealPreview(){
 }
 let dealsInFlight=false;
 let resumeDeals=null;
+let latestDealId=null;
+let newDeals=[];
+let checkingNewDeals=false;
+let lastDealCheck=0;
+const dealCheckInterval=5*60*1000;
+
+function matchesOfferView(offer,terms){
+  return (cat==='Alla'||offer.c===cat)&&(!hideMem||!offer.m)&&
+    terms.every(term=>(offer.searchText||searchKey([offer.s,offer.n,offer.c,offer.u,offer.cond].join(' '))).includes(term));
+}
+function updateNewDealsButton(){
+  const button=document.querySelector('[data-new-deals]');
+  if(!button)return;
+  const terms=searchKey(q).split(' ').filter(Boolean);
+  button.hidden=!newDeals.some(offer=>offer.vt>=todayISO()&&matchesOfferView(offer,terms));
+}
+async function checkNewDeals(){
+  if(document.hidden||tab!=='offers'||latestDealId===null||dealsInFlight||checkingNewDeals||
+     Date.now()-lastDealCheck<dealCheckInterval)return;
+  checkingNewDeals=true;
+  lastDealCheck=Date.now();
+  try{
+    let cursor=latestDealId;
+    const added=[];
+    for(;;){
+      const {data,error}=await sb.from('deals').select('*').gte('valid_to',todayISO())
+        .gt('id',cursor).order('id',{ascending:true}).limit(100);
+      if(error||!Array.isArray(data))return;
+      added.push(...data.map(norm).filter(isOfferListing));
+      if(data.length)cursor=data[data.length-1].id;
+      if(data.length<100)break;
+    }
+    latestDealId=cursor;
+    newDeals.push(...added);
+    updateNewDealsButton();
+  }catch{/* A later check retries from the previous ID. */}
+  finally{checkingNewDeals=false}
+}
+function showNewDeals(){
+  const today=todayISO();
+  const addedIds=new Set(newDeals.map(offer=>offer.id));
+  DATA=[...newDeals.reverse(),...DATA].filter(offer=>offer.vt>=today);
+  newDeals=[];
+  render();
+  const index=pendingOffers.findIndex(offer=>addedIds.has(offer.id)||offer.storeChoices?.some(choice=>addedIds.has(choice.id)));
+  if(index>=visibleOffers){visibleOffers=index+1;render()}
+  const card=index>=0&&document.querySelector('#offer-results .card[data-product="'+pendingOffers[index].id+'"]');
+  const target=card||document.querySelector('#offer-heading');
+  target.tabIndex=-1;
+  target.focus({preventScroll:true});
+  target.scrollIntoView({block:'center'});
+}
 async function loadDeals(){
   if(dealsInFlight)return;
   dealsInFlight=true;
@@ -1574,6 +1627,8 @@ async function loadDeals(){
     }
     resumeDeals=null;
     DATA=active;
+    latestDealId=active[0]?.id??0;
+    lastDealCheck=Date.now();
     const relatedPanel=document.querySelector("#modal .related-products");
     const opened=relatedPanel&&DATA.find(item=>item.id===activeProductId);
     if(opened)relatedPanel.innerHTML=relatedProductContent(opened);
@@ -2132,7 +2187,7 @@ function storeComparison(o){
 function offerResults(t){
   const terms=t?t.split(' '):[];
   const offerData=DATA.filter(isOfferListing);
-  const list=groupListingOffers(offerData.filter(o=>(cat==='Alla'||o.c===cat)&&(!hideMem||!o.m)&&terms.every(term=>(o.searchText||searchKey([o.s,o.n,o.c,o.u,o.cond].join(' '))).includes(term))));
+  const list=groupListingOffers(offerData.filter(o=>matchesOfferView(o,terms)));
   let sorted=list;
   if(sortMode==='recommended'&&cat==='Alla'&&!t)sorted=recommendedStartOffers(list);
   else if(sortMode==='recommended'&&t){
@@ -2201,10 +2256,11 @@ function offers(){
   const t=searchKey(q);
   const {body,count}=offerResults(t);
   return `${DEMO?'<div class="demo">Under uppbyggnad: erbjudandena nedan är exempel tills riktiga är på plats.</div>':''}<div id="offer-campaigns">${t?'':campaignSection()}</div>
-  <h2 class="offers-title"><span id="offer-heading">${t?'Sökresultat':'Aktiva erbjudanden'}</span><span id="offer-count" class="n" aria-live="polite">${count}</span></h2>
+  <h2 class="offers-title"><span id="offer-heading" tabindex="-1">${t?'Sökresultat':'Aktiva erbjudanden'}</span><span id="offer-count" class="n" aria-live="polite">${count}</span></h2>
   <div class="chips" role="group" aria-label="Kategorier">${CATS.map(c=>`<button class="chip" data-cat="${c}" aria-pressed="${c===cat}">${ICONS[c]?ICONS[c]+' ':''}${c}</button>`).join('')}</div>
   <div class="sort-row"><label for="offer-sort">Sortera</label><select id="offer-sort" aria-label="Sortera erbjudanden"><option value="recommended"${sortMode==='recommended'?' selected':''}>Rekommenderade</option><option value="cheapest"${sortMode==='cheapest'?' selected':''}>Billigaste först</option><option value="expensive"${sortMode==='expensive'?' selected':''}>Dyraste först</option><option value="newest"${sortMode==='newest'?' selected':''}>Senaste först</option><option value="discount"${sortMode==='discount'?' selected':''}>Störst rabatt först</option></select></div>
   <div class="sw"><button data-mem aria-pressed="${hideMem}" aria-label="Dölj erbjudanden som kräver medlemskap"></button>Dölj erbjudanden som kräver medlemskap</div>
+  <button type="button" class="new-deals" data-new-deals hidden>↑ Visa nya fynd</button>
   <div id="offer-results">${body}</div>`}
 
 function comparisonKey(value){
@@ -2427,11 +2483,13 @@ function updateSearchResults(){
   $('#offer-heading').textContent=t?'Sökresultat':'Aktiva erbjudanden';
   $('#offer-count').textContent=count;
   $('#offer-results').innerHTML=body;
+  updateNewDealsButton();
   observeMoreOffers($('#main'));
 }
 function render(){
   const mainEl=$('#main');mainEl.innerHTML={offers,compare,codes,list,rewards,adminRewards:rewardAdminPanel}[tab]();
   setupCampaignRail();
+  updateNewDealsButton();
   observeMoreOffers(mainEl);
   if(anim){const sb=mainEl.querySelector('.stats b');if(sb&&DATA.length)countUp(sb,DATA.length)}
   anim=false;
@@ -2601,6 +2659,7 @@ document.addEventListener('click',e=>{
   if(e.target.matches('[data-close]')){closeAuth();return}
   const b=e.target.closest('button');if(!b)return;const d=b.dataset;
   if(d.togglePassword!==undefined){const passwordInput=$('#pw');if(passwordInput){const show=passwordInput.type==='password';passwordInput.type=show?'text':'password';b.setAttribute('aria-pressed',String(show));b.setAttribute('aria-label',show?'Dölj lösenord':'Visa lösenord');b.title=show?'Dölj lösenord':'Visa lösenord'}return}
+  if(d.newDeals!==undefined){showNewDeals();return}
   if(d.retryCodes!==undefined){loadCodes();return}
   if(d.clearFavorites!==undefined){clearFavorites();return}
   if(d.storeOffer!==undefined){openProduct(Number(d.storeOffer),false,b);return}
@@ -2714,8 +2773,10 @@ document.addEventListener('click',event=>{
   if(link && tab==='offers')rememberOfferView(link.closest('.card')||productReturn?.trigger?.closest('.card'));
 },true);
 document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible')checkNewDeals();
   if(document.visibilityState==='hidden')rememberOfferView(productReturn?.trigger?.closest('.card'));
 });
+setInterval(checkNewDeals,dealCheckInterval);
 window.addEventListener('pagehide',()=>rememberOfferView(productReturn?.trigger?.closest('.card')));
 const requestedCategory=new URLSearchParams(location.search).get('category');
 if(CATS.includes(requestedCategory)){
