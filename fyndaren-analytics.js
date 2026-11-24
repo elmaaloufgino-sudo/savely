@@ -2,7 +2,7 @@
  * Set GA_ID only after configuring the GA4 property and reviewing its settings. */
 (() => {
   'use strict';
-  const GA_ID = ''; // G-XXXXXXXXXX; intentionally disabled until provided
+  const GA_ID = 'G-B4CNKFXQ1F';
   const API = 'https://ebmqzrejrpijitxeggsl.supabase.co/rest/v1/rpc/record_fyndaren_stat';
   const KEY = 'sb_publishable_ep-vKQBf3tjvDC2h03BlYQ_hwUqrvY5';
   const consent = key => window.FyndarenConsent?.allowed(key) === true;
@@ -28,7 +28,9 @@
   const device = /iPad|Tablet|Android(?!.*Mobile)/i.test(navigator.userAgent)?'tablet':/Mobi|iPhone|Android/i.test(navigator.userAgent)?'mobile':'desktop';
   let localPageSent=false, googlePageSent=false, tagLoaded=false;
   const gaConfigured = /^G-[A-Z0-9]+$/.test(GA_ID);
-  function googleAllowed(){return gaConfigured && consent('googleAnalytics');}
+  function googleAllowed(){return gaConfigured && window.FyndarenConsent?.googleAnalyticsReady===true && consent('googleAnalytics');}
+  const safePage = location.origin+(page==='deal'?'/fynd/deal-'+pageDeal+'/':path);
+  function safeReferrer(){try{const ref=new URL(document.referrer);return ref.protocol==='https:'||ref.protocol==='http:'?ref.origin+'/':'';}catch{return '';}}
   function loadGoogle() {
     if(!googleAllowed()||tagLoaded)return;
     tagLoaded=true;
@@ -38,7 +40,7 @@
     window.gtag('consent','default',{analytics_storage:'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});
     window.gtag('consent','update',{analytics_storage:'granted'});
     window.gtag('js',new Date());
-    window.gtag('config',GA_ID,{send_page_view:false,allow_google_signals:false,allow_ad_personalization_signals:false});
+    window.gtag('config',GA_ID,{send_page_view:false,allow_google_signals:false,allow_ad_personalization_signals:false,cookie_expires:15552000,cookie_update:false,page_location:safePage,page_referrer:safeReferrer(),page_title:page});
     const tag=document.createElement('script');
     tag.async=true;tag.src='https://www.googletagmanager.com/gtag/js?id='+encodeURIComponent(GA_ID);
     document.head.append(tag);
@@ -54,8 +56,7 @@
   }
   function googleEvent(name,id) {
     if(!googleAllowed()||!tagLoaded)return;
-    const safePage = location.origin+(page==='deal'?'/fynd/deal-'+pageDeal+'/':path);
-    window.gtag('event',name,{send_to:GA_ID,page_location:safePage,page_referrer:'',page_title:page,deal_id:id||undefined,traffic_source:traffic,device_class:device});
+    window.gtag('event',name,{send_to:GA_ID,page_location:safePage,page_referrer:safeReferrer(),page_title:page,deal_id:id||undefined,traffic_source:traffic,device_class:device});
   }
   function localEvent(name,id) {
     if(!consent('analytics'))return;
