@@ -2082,7 +2082,8 @@ function openProduct(id,keepCarousel=false,trigger=null){
   ].join('');
   const url=o.a||o.w;
   activeProductId=o.id;
-  const cta=url?(o.a?'<span class="affiliate-label">Annonslänk</span>':'')+'<a class="product-cta" '+(o.a?'data-fynd-affiliate="'+esc(o.a)+'" data-fynd-direct="'+esc(o.w||'')+'" ':'')+'href="'+esc(o.a?(window.FyndarenConsent?.affiliateUrl(o.a,o.w)||o.w||'#fynd-cookie-settings'):url)+'" target="_blank" rel="'+(o.a?'sponsored nofollow noopener noreferrer':'noopener noreferrer')+'">Till butiken ↗</a>':'';
+  window.FyndarenAnalytics?.track('product_view',o.id);
+  const cta=url?(o.a?'<span class="affiliate-label">Annonslänk</span>':'')+'<a class="product-cta" data-fynd-deal="'+o.id+'" '+(o.a?'data-fynd-affiliate="'+esc(o.a)+'" data-fynd-direct="'+esc(o.w||'')+'" ':'')+'href="'+esc(o.a?(window.FyndarenConsent?.affiliateUrl(o.a,o.w)||o.w||'#fynd-cookie-settings'):url)+'" target="_blank" rel="'+(o.a?'sponsored nofollow noopener noreferrer':'noopener noreferrer')+'">Till butiken ↗</a>':'';
   const pilotEligible=isRewardAdmin && /^spartoo(?: se)?$/i.test(o.s) && /^https:\/\/www\.awin1\.com\/pclick\.php\?p=\d+&a=3149456&m=27159$/.test(url);
   const pilot=pilotEligible?'<button type="button" class="btn" data-spartoo-test="'+o.id+'">Testköp med poängspårning · endast admin</button><div role="status" data-pilot-status></div>':'';
   const carouselButtons=activeProductIds.length>1?'<button type="button" class="product-carousel-btn prev" data-product-prev aria-label="Föregående erbjudande" title="Föregående erbjudande">‹</button><button type="button" class="product-carousel-btn next" data-product-next aria-label="Nästa erbjudande" title="Nästa erbjudande">›</button>':'';
