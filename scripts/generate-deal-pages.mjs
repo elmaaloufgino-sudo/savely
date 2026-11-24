@@ -176,7 +176,7 @@ function makePage(deal, byCategory) {
     }
   }
   const retailerButton = !expired && retailer
-    ? '<a class="primary" ' + (isAffiliate ? 'data-fynd-affiliate="' + html(retailer) + '" data-fynd-direct="' + html(direct || "") + '" ' : '') + 'href="' + html(safeRetailer) + '" target="_blank" rel="' +
+    ? '<a class="primary" data-fynd-shop data-fynd-deal="' + id + '" ' + (isAffiliate ? 'data-fynd-affiliate="' + html(retailer) + '" data-fynd-direct="' + html(direct || "") + '" ' : '') + 'href="' + html(safeRetailer) + '" target="_blank" rel="' +
       (isAffiliate ? "sponsored nofollow noopener noreferrer" : "noopener noreferrer") + '">' +
       (isAffiliate ? "Till butiken" : "Till erbjudandet") + ' ↗</a>'
     : "";
