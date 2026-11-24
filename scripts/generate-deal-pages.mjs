@@ -125,10 +125,10 @@ function undatedPage(deal, canonical) {
     '<meta name="robots" content="noindex,follow">',
     '<link rel="canonical" href="' + html(canonical) + '">',
     '<title>' + title + ' | Fyndaren</title>',
-    '<style>body{margin:0;background:#141418;color:#f3f3f5;font:1rem/1.6 system-ui}main{max-width:38rem;margin:auto;padding:3rem 1.5rem}a{color:#e6ca65}h1{line-height:1.2}</style></head>',
+    '<style>body{margin:0;background:#141418;color:#f3f3f5;font:1rem/1.6 system-ui}main{max-width:38rem;margin:auto;padding:3rem 1.5rem}a{color:#e6ca65}h1{line-height:1.2}</style><script src="/cookie-consent.js"></script></head>',
     '<body><main><a href="/">Fyndaren</a><h1>' + title + '</h1>',
     '<p>Erbjudandet visas inte längre. Det saknar ett bekräftat slutdatum.</p>',
-    '<a href="/fynd/">Se aktuella erbjudanden</a></main></body></html>'
+    '<a href="/fynd/">Se aktuella erbjudanden</a><p><a href="/cookiepolicy.html">Cookiepolicy</a> · <button type="button" data-fynd-cookie-settings>Cookieinställningar</button></p></main></body></html>'
   ].join("\n");
 }
 
@@ -144,7 +144,8 @@ function makePage(deal, byCategory) {
   const indexable = !expired && recentlyChecked;
   const image = validHttps(deal.image_url) || validHttps(verifiedImageByDealId[id]);
   const imageUrl = image || BASE_URL + "/icon-512.png";
-  const retailer = validHttps(deal.affiliate_url) || validHttps(deal.shop_url);
+  const direct = validHttps(deal.shop_url);
+  const retailer = validHttps(deal.affiliate_url) || direct;
   const isAffiliate = !!validHttps(deal.affiliate_url);
   const price = money(deal.price);
   const oldPrice = Number(deal.old_price);
@@ -163,8 +164,19 @@ function makePage(deal, byCategory) {
     expiry ? expiry + "." : "",
     checked ? checked + "." : ""
   ].filter(Boolean).join(" ").slice(0, 300);
+  let safeRetailer = retailer;
+  if (isAffiliate) {
+    const url = new URL(retailer);
+    if (/^(?:[a-z0-9-]+\.)*awin1\.com$/i.test(url.hostname)) {
+      url.searchParams.set("cons", "0");
+      for (const key of [...url.searchParams.keys()]) if (/^clickref\d*$/i.test(key)) url.searchParams.delete(key);
+      safeRetailer = url.href;
+    } else {
+      safeRetailer = direct && !/^(?:[a-z0-9-]+\.)*awin1\.com$/i.test(new URL(direct).hostname) ? direct : "/app.html?deal=" + encodeURIComponent(id);
+    }
+  }
   const retailerButton = !expired && retailer
-    ? '<a class="primary" href="' + html(retailer) + '" target="_blank" rel="' +
+    ? '<a class="primary" ' + (isAffiliate ? 'data-fynd-affiliate="' + html(retailer) + '" data-fynd-direct="' + html(direct || "") + '" ' : '') + 'href="' + html(safeRetailer) + '" target="_blank" rel="' +
       (isAffiliate ? "sponsored nofollow noopener noreferrer" : "noopener noreferrer") + '">' +
       (isAffiliate ? "Till butiken" : "Till erbjudandet") + ' ↗</a>'
     : "";
@@ -212,6 +224,7 @@ function makePage(deal, byCategory) {
     '.primary{background:linear-gradient(135deg,#d4af37,#e6ca65);color:#090909}.secondary{border:1px solid rgba(230,202,101,.38);color:#e6ca65;background:rgba(255,255,255,.03)}',
     'footer{color:#999;line-height:1.5;margin-top:22px;font-size:12px}button{font:inherit;cursor:pointer}',
     '</style>',
+    '<script src="/cookie-consent.js"></script>',
     '</head>',
     '<body><main>',
     '<a class="brand" href="/">FYNDAREN</a>',
@@ -238,7 +251,7 @@ function makePage(deal, byCategory) {
     '</div>',
     expired ? "" : relatedOffers(deal, byCategory),
     '</article>',
-    '<footer>Priser och villkor kan ändras. Kontrollera alltid uppgifterna hos butiken före köp. Vissa butikslänkar kan vara annonslänkar. Fyndaren kan få provision utan extra kostnad för dig.<br><a href="/integritetspolicy.html">Integritetspolicy</a> · <a href="/om-oss.html">Om Fyndaren</a></footer>',
+    '<footer>Priser och villkor kan ändras. Kontrollera alltid uppgifterna hos butiken före köp. Vissa butikslänkar kan vara annonslänkar. Fyndaren kan få provision utan extra kostnad för dig.<br><a href="/integritetspolicy.html">Integritetspolicy</a> · <a href="/om-oss.html">Om Fyndaren</a> · <a href="/cookiepolicy.html">Cookiepolicy</a> · <button type="button" data-fynd-cookie-settings>Cookieinställningar</button></footer>',
     '</main>',
     '<script>',
     'const shareButton=document.getElementById("share");',
@@ -309,6 +322,7 @@ function makeCatalogPage(catalogDeals) {
     'footer{border-top:1px solid;padding:20px 18px;font-size:12px;line-height:1.7}footer .wrap{display:flex;flex-wrap:wrap;gap:8px 18px}',
     '@media(prefers-reduced-motion:reduce){*{transition:none!important}}',
     '</style>',
+    '<script src="/cookie-consent.js"></script>',
     '</head>',
     '<body>',
     '<header><div class="wrap"><a class="brand" href="/">FYNDAREN</a></div></header>',
@@ -319,7 +333,7 @@ function makeCatalogPage(catalogDeals) {
     '<p class="count">' + catalogDeals.length + ' aktuella fynd · Senast uppdaterad ' + html(dateLabel(today)) + '</p>',
     listing,
     '</main>',
-    '<footer><div class="wrap"><a href="/">Startsidan</a><a href="/app.html">Öppna appen</a><a href="/om-oss.html">Om Fyndaren</a><a href="/integritetspolicy.html">Integritetspolicy</a></div></footer>',
+    '<footer><div class="wrap"><a href="/">Startsidan</a><a href="/app.html">Öppna appen</a><a href="/om-oss.html">Om Fyndaren</a><a href="/integritetspolicy.html">Integritetspolicy</a><a href="/cookiepolicy.html">Cookiepolicy</a> · <button type="button" data-fynd-cookie-settings>Cookieinställningar</button></div></footer>',
     '</body>',
     '</html>'
   ].join("\n");
