@@ -123,7 +123,38 @@ function formHTML(d){
   <button class="btn" data-save>${editId?'Spara ändringar':'Lägg till erbjudande'}</button>
   ${editId?'<button class="btn ghost" data-cancel>Avbryt</button>':''}</div>`;
 }
+
+let analyticsDays=7,analyticsRequest=0;
+function analyticsView(){
+  const request=++analyticsRequest;
+  $('#app').innerHTML=tabsHTML()+'<section class="panel"><h2>Fyndaren Statistik</h2><p>Endast trafik med samtycke. Visningar är händelser, inte unika personer. Siffrorna är ungefärliga och kan påverkas av blockerare och automatiserad trafik.</p><label for="analytics-days">Period</label><select id="analytics-days"><option value="1">Idag</option><option value="7">Senaste 7 dagar</option><option value="30">Senaste 30 dagar</option><option value="90">Senaste 90 dagar</option></select><button type="button" class="btn ghost sm" id="analytics-refresh">Uppdatera</button><div id="analytics-results" aria-live="polite">Hämtar statistik…</div></section>';
+  $('#analytics-days').value=String(analyticsDays);
+  $('#analytics-days').onchange=e=>{analyticsDays=Number(e.target.value);analyticsView()};
+  $('#analytics-refresh').onclick=analyticsView;
+  (async()=>{
+    try{
+      const {data,error}=await sb.rpc('get_fyndaren_stats',{p_days:analyticsDays});
+      if(request!==analyticsRequest||view!=='analytics'||!isAdmin||!$('#analytics-results'))return;
+      if(error||!data)throw Error('Statistics unavailable');
+      const fmt=n=>Number(n||0).toLocaleString('sv-SE');
+      const sources={direct:'Direkt',internal:'Intern navigering',google:'Google',facebook:'Facebook',instagram:'Instagram',other_search:'Övriga sökmotorer',other:'Övrigt'};
+      const devices={mobile:'Mobil',tablet:'Surfplatta',desktop:'Dator'};
+      const table=(headers,rows)=>'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;text-align:left"><thead><tr>'+headers.map(x=>'<th style="padding:8px">'+esc(x)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(row=>'<tr style="border-top:1px solid #ffffff20">'+row.map(x=>'<td style="padding:8px">'+esc(String(x))+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>';
+      const cards=[['Sidvisningar',data.totals?.page_view],['Produktvisningar',data.totals?.product_view],['Butiksklick',data.totals?.shop_click]];
+      const totals='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:16px 0">'+cards.map(([label,n])=>'<div style="padding:14px;border:1px solid #D4AF37;border-radius:12px"><span>'+label+'</span><br><strong style="font-size:26px;color:#E6CA65">'+fmt(n)+'</strong></div>').join('')+'</div>';
+      const days=new Map((data.daily||[]).map(d=>[d.day,d]));
+      const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Stockholm',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+      const end=new Date(today+'T12:00:00Z');
+      const daily=Array.from({length:analyticsDays},(_,i)=>{const day=new Date(end.getTime()-(analyticsDays-1-i)*86400000).toISOString().slice(0,10);return {day,...days.get(day)}});
+      const max=Math.max(1,...daily.map(d=>Number(d.views||0)));
+      const chart='<div aria-label="Sidvisningar per dag" style="display:flex;align-items:flex-end;gap:3px;height:110px;border-bottom:1px solid #ffffff40">'+daily.map(d=>'<div title="'+esc(d.day+': '+fmt(d.views))+'" style="background:#D4AF37;flex:1;min-width:1px;height:'+Math.max(1,Math.round(Number(d.views||0)/max*100))+'%"></div>').join('')+'</div>';
+      $('#analytics-results').innerHTML=totals+'<h2>Sidvisningar per dag</h2>'+chart+table(['Datum','Sidvisningar','Produkter','Butiksklick'],daily.slice().reverse().map(d=>[d.day,fmt(d.views),fmt(d.products),fmt(d.clicks)]))+'<h2>Trafikkällor</h2>'+table(['Källa','Sidvisningar'],(data.sources||[]).map(d=>[sources[d.source]||d.source,fmt(d.n)]))+'<h2>Enheter</h2>'+table(['Enhet','Sidvisningar'],(data.devices||[]).map(d=>[devices[d.device]||d.device,fmt(d.n)]))+'<h2>Populära erbjudanden</h2>'+table(['Produkt','Butik','Visningar','Klick'],(data.top||[]).map(d=>[d.name,d.store,fmt(d.views),fmt(d.clicks)]))+'<p><a href="https://analytics.google.com/" target="_blank" rel="noopener noreferrer">Öppna Google Analytics</a> – kräver separat GA4-konfiguration.</p>';
+    }catch(e){if(request===analyticsRequest&&view==='analytics'&&$('#analytics-results'))$('#analytics-results').textContent='Statistik kunde inte hämtas. Kontrollera att databasmigreringen har installerats och att du är administratör.';}
+  })();
+}
+
 function adminView(){
+  if(view==='analytics'){analyticsView();return}
   if(view==='codes'){codesView();return}if(view==='import'){importView();return}
   $('#app').innerHTML=tabsHTML()+formHTML(editId?DATA.find(x=>x.id===editId):null)+`<h2>Alla erbjudanden (<span id="count">0</span>)</h2><input id="flt" type="search" placeholder="Sök erbjudanden…" aria-label="Sök erbjudanden" value="${esc(filter)}"><div id="list" style="margin-top:10px"></div>`;
   renderList();updateManualImagePreview();
@@ -142,7 +173,7 @@ async function loadErbjudanden(){
   if(!cr.error)CODES=cr.data;
 }
 function tabsHTML(){
-  return `<div class="two" style="margin-bottom:14px"><button class="btn ${view==='deals'?'':'ghost'} sm" style="width:100%" data-view="deals">Erbjudanden</button><button class="btn ${view==='codes'?'':'ghost'} sm" style="width:100%" data-view="codes">Rabattkoder</button><button class="btn ${view==='import'?'':'ghost'} sm" style="width:100%;grid-column:1/-1" data-view="import">Importera produkter</button></div>`;
+  return `<div class="two" style="margin-bottom:14px"><button class="btn ${view==='deals'?'':'ghost'} sm" style="width:100%" data-view="deals">Erbjudanden</button><button class="btn ${view==='codes'?'':'ghost'} sm" style="width:100%" data-view="codes">Rabattkoder</button><button class="btn ${view==='import'?'':'ghost'} sm" style="width:100%" data-view="import">Importera produkter</button><button class="btn ${view==='analytics'?'':'ghost'} sm" style="width:100%" data-view="analytics">Statistik</button></div>`;
 }
 function codesView(){
   $('#app').innerHTML=tabsHTML()+`<div class="panel"><b>Lägg till rabattkod</b>

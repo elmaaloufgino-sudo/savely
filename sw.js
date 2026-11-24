@@ -1,4 +1,4 @@
-const CACHE = 'fyndaren-v27';
+const CACHE = 'fyndaren-v28';
 
 // Kontrollera att varje fil här finns på servern. En saknad fil hoppas över,
 // men ger då ingen offline-support för just den filen.
@@ -7,6 +7,7 @@ const SHELL = [
   'index.html',
   'app.html',
   'cookie-consent.js',
+  'fyndaren-analytics.js',
   'cookiepolicy.html',
   'integritetspolicy.html',
   'nyhetsbrev.html',

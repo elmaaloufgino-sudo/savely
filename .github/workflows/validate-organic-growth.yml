@@ -8,6 +8,8 @@ on:
       - "index.html"
       - "scripts/**/*.mjs"
       - "cookie-consent.js"
+      - "fyndaren-analytics.js"
+      - "scripts/analytics-setup.sql"
       - "cookiepolicy.html"
       - "nyhetsbrev.html"
       - "integritetspolicy.html"
@@ -30,7 +32,9 @@ jobs:
       - name: Check cookie consent and Awin signals
         run: |
           node --check cookie-consent.js
+          node --check fyndaren-analytics.js
           node scripts/test-cookie-consent.mjs
+          node scripts/test-analytics.mjs
       - name: Check generated-page script syntax
         run: node --check scripts/generate-deal-pages.mjs
       - name: Run read-only offer-page generation smoke test

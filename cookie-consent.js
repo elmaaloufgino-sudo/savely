@@ -2,15 +2,15 @@
 (() => {
   'use strict';
   const KEY = 'fyndaren-consent-v1', TTL = 180 * 24 * 60 * 60 * 1000;
-  const categories = ['preferences','affiliate','newsletter'];
-  const empty = () => ({preferences:false,affiliate:false,newsletter:false});
+  const categories = ['preferences','affiliate','newsletter','analytics','googleAnalytics'];
+  const empty = () => ({preferences:false,affiliate:false,newsletter:false,analytics:false,googleAnalytics:false});
   let choice = null, memoryOnly = false;
   function read() {
     try {
       const value = JSON.parse(localStorage.getItem(KEY));
-      if (value && value.version === 1 && Number.isFinite(value.at) &&
+      if (value && [1,2].includes(value.version) && Number.isFinite(value.at) &&
           Date.now() >= value.at && Date.now() - value.at < TTL &&
-          categories.every(key => typeof value[key] === 'boolean')) return value;
+          (value.version===1 ? ['preferences','affiliate','newsletter'] : categories).every(key => typeof value[key] === 'boolean')) return {...empty(),...value,...(value.version===1?{analytics:false,googleAnalytics:false}:{})};
     } catch {}
     return null;
   }
@@ -55,7 +55,7 @@
     opener = null;
   }
   function save(values) {
-    choice = {version:1,at:Date.now(),...empty(),...values};
+    choice = {version:2,at:Date.now(),...empty(),...values};
     try { localStorage.setItem(KEY, JSON.stringify(choice)); memoryOnly = false; } catch { memoryOnly = true; }
     clearPreferences(); sync(); close();
     window.dispatchEvent(new Event('fyndaren-consent-change'));
@@ -93,12 +93,12 @@
     panel = document.createElement('section');
     panel.id = 'fynd-cookie-panel'; panel.hidden = true;
     panel.setAttribute('role','region'); panel.setAttribute('aria-labelledby','fynd-cookie-title');
-    panel.innerHTML = '<h2 id="fynd-cookie-title">Din integritet är viktig för oss</h2><p>Vi använder nödvändig lagring för att sidan och inloggningen ska fungera. Du kan välja om vi får spara dina inställningar, använda Awins köpspårning och ladda vårt externa nyhetsbrevsformulär. Du kan använda Fyndaren även om du tackar nej. Poängspårning kräver att affiliate-spårning är tillåten.</p><a href="/cookiepolicy.html">Läs vår cookiepolicy</a><div class="fc-actions"><button type="button" data-choice="all">Acceptera alla</button><button type="button" data-choice="none">Endast nödvändiga</button><button type="button" class="fc-secondary" data-choice="custom" aria-expanded="false">Anpassa inställningar</button></div><div class="fc-custom" hidden><p>Nödvändig lagring är alltid aktiv.</p><label><input type="checkbox" name="preferences"> Funktionell lagring – kom ihåg flik och tillfällig produktlista.</label><label><input type="checkbox" name="affiliate"> Affiliate-spårning – Awin kan registrera köp för provision och eventuell poängspårning.</label><label><input type="checkbox" name="newsletter"> Externt formulär – Brevo och Google reCAPTCHA får laddas här.</label><div class="fc-actions"><button type="button" class="fc-secondary" data-choice="save">Spara mina val</button><button type="button" class="fc-secondary" data-choice="close">Stäng utan att ändra</button></div></div>';
+    panel.innerHTML = '<h2 id="fynd-cookie-title">Din integritet är viktig för oss</h2><p>Vi använder nödvändig lagring för att sidan och inloggningen ska fungera. Du kan välja om vi får spara dina inställningar, använda Awins köpspårning, ladda vårt externa nyhetsbrevsformulär och samla statistik. Vår egen statistik räknar sidvisningar, produktvisningar och butiksklick. Google Analytics är ett separat val och börjar först när tjänsten är ansluten. Du kan använda Fyndaren även om du tackar nej. Poängspårning kräver att affiliate-spårning är tillåten.</p><a href="/cookiepolicy.html">Läs vår cookiepolicy</a><div class="fc-actions"><button type="button" data-choice="all">Acceptera alla</button><button type="button" data-choice="none">Endast nödvändiga</button><button type="button" class="fc-secondary" data-choice="custom" aria-expanded="false">Anpassa inställningar</button></div><div class="fc-custom" hidden><p>Nödvändig lagring är alltid aktiv.</p><label><input type="checkbox" name="preferences"> Funktionell lagring – kom ihåg flik och tillfällig produktlista.</label><label><input type="checkbox" name="affiliate"> Affiliate-spårning – Awin kan registrera köp för provision och eventuell poängspårning.</label><label><input type="checkbox" name="analytics"> Fyndarens statistik – räkna sidvisningar och klick utan besökar-ID.</label><label><input type="checkbox" name="googleAnalytics"> Google Analytics – besöksanalys hos Google när tjänsten är ansluten.</label><label><input type="checkbox" name="newsletter"> Externt formulär – Brevo och Google reCAPTCHA får laddas här.</label><div class="fc-actions"><button type="button" class="fc-secondary" data-choice="save">Spara mina val</button><button type="button" class="fc-secondary" data-choice="close">Stäng utan att ändra</button></div></div>';
     document.body.append(panel);
     custom = panel.querySelector('.fc-custom');
     panel.addEventListener('click', event => {
       const action = event.target.closest('[data-choice]')?.dataset.choice;
-      if (action === 'all') save({preferences:true,affiliate:true,newsletter:true});
+      if (action === 'all') save({preferences:true,affiliate:true,newsletter:true,analytics:true,googleAnalytics:true});
       if (action === 'none') save(empty());
       if (action === 'save') save(Object.fromEntries(categories.map(key=>[key,panel.querySelector('[name="'+key+'"]').checked])));
       if (action === 'custom') { custom.hidden = !custom.hidden; event.target.setAttribute('aria-expanded',String(!custom.hidden)); }
@@ -118,11 +118,12 @@
       const a = event.target.closest('a[data-fynd-affiliate],a[href*="awin1.com"]');
       if (a) { const url = affiliateUrl(a.dataset.fyndAffiliate || a.href,a.dataset.fyndDirect); a.setAttribute('href',url); if(url.startsWith('#'))event.preventDefault(); }
     },true);
-    window.addEventListener('storage', event => { if(event.key === KEY || event.key === null) {memoryOnly=false;choice=read();clearPreferences();sync();if(!choice)open();else close();} });
-    window.addEventListener('pageshow', () => { choice=memoryOnly && choice && Date.now()-choice.at<TTL ? choice : read(); clearPreferences();sync();if(!choice)open(); });
+    window.addEventListener('storage', event => { if(event.key === KEY || event.key === null) {memoryOnly=false;choice=read();clearPreferences();sync();if(!choice || choice.version!==2)open();else close();window.dispatchEvent(new Event('fyndaren-consent-change'));} });
+    window.addEventListener('pageshow', () => { choice=memoryOnly && choice && Date.now()-choice.at<TTL ? choice : read(); clearPreferences();sync();if(!choice || choice.version!==2)open();window.dispatchEvent(new Event('fyndaren-consent-change')); });
     sync();
     new MutationObserver(records => { if (records.some(r => r.addedNodes.length)) sync(); }).observe(document.body,{childList:true,subtree:true});
-    if (!choice) open();
+    if (!choice || choice.version!==2) open();
+    const analyticsScript=document.createElement('script');analyticsScript.src='/fyndaren-analytics.js';document.head.append(analyticsScript);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',init,{once:true}); else init();
 })();
