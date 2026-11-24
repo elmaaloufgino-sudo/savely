@@ -4,7 +4,7 @@
   const KEY = 'fyndaren-consent-v1', TTL = 180 * 24 * 60 * 60 * 1000;
   const categories = ['preferences','affiliate','newsletter'];
   const empty = () => ({preferences:false,affiliate:false,newsletter:false});
-  let choice = null;
+  let choice = null, memoryOnly = false;
   function read() {
     try {
       const value = JSON.parse(localStorage.getItem(KEY));
@@ -56,7 +56,7 @@
   }
   function save(values) {
     choice = {version:1,at:Date.now(),...empty(),...values};
-    try { localStorage.setItem(KEY, JSON.stringify(choice)); } catch {}
+    try { localStorage.setItem(KEY, JSON.stringify(choice)); memoryOnly = false; } catch { memoryOnly = true; }
     clearPreferences(); sync(); close();
     window.dispatchEvent(new Event('fyndaren-consent-change'));
   }
@@ -65,6 +65,7 @@
     opener = trigger;
     for (const key of categories) panel.querySelector('[name="'+key+'"]').checked = allowed(key);
     custom.hidden = !settings;
+    panel.querySelector('[data-choice="custom"]').setAttribute('aria-expanded',String(settings));
     panel.hidden = false;
     if (trigger) panel.querySelector(settings?'input[name="preferences"]':'button').focus({preventScroll:true});
   }
@@ -117,8 +118,8 @@
       const a = event.target.closest('a[data-fynd-affiliate],a[href*="awin1.com"]');
       if (a) { const url = affiliateUrl(a.dataset.fyndAffiliate || a.href,a.dataset.fyndDirect); a.setAttribute('href',url); if(url.startsWith('#'))event.preventDefault(); }
     },true);
-    window.addEventListener('storage', event => { if(event.key === KEY || event.key === null) {choice=read();clearPreferences();sync();if(!choice)open();else close();} });
-    window.addEventListener('pageshow', () => { choice=read() || (choice && Date.now()-choice.at<TTL?choice:null); clearPreferences();sync();if(!choice)open(); });
+    window.addEventListener('storage', event => { if(event.key === KEY || event.key === null) {memoryOnly=false;choice=read();clearPreferences();sync();if(!choice)open();else close();} });
+    window.addEventListener('pageshow', () => { choice=memoryOnly && choice && Date.now()-choice.at<TTL ? choice : read(); clearPreferences();sync();if(!choice)open(); });
     sync();
     new MutationObserver(records => { if (records.some(r => r.addedNodes.length)) sync(); }).observe(document.body,{childList:true,subtree:true});
     if (!choice) open();
