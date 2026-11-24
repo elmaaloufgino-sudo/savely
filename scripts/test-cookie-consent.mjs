@@ -16,7 +16,8 @@ const newGranted={...granted,version:2,analytics:true,googleAnalytics:true};
 assert.equal(load(granted).consent.allowed('analytics'),false);
 assert.equal(load(granted).consent.allowed('googleAnalytics'),false);
 assert.equal(load(newGranted).consent.allowed('analytics'),true);
-assert.equal(load(newGranted).consent.allowed('googleAnalytics'),true);
+assert.equal(load(newGranted).consent.allowed('googleAnalytics'),false);
+assert.equal(load({...newGranted,version:3}).consent.allowed('googleAnalytics'),true);
 assert.equal(load({...newGranted,analytics:false}).consent.allowed('analytics'),false);
 for(const value of [undefined,denied,{...granted,at:Date.now()-181*86400000},{...granted,affiliate:'true'}]){
   const {consent,storage}=load(value);
