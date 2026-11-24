@@ -12,6 +12,12 @@ function load(value) {
 const link='https://www.awin1.com/pclick.php?p=123&a=456&m=789&clickref=private&cons=1';
 const denied={version:1,at:Date.now(),preferences:false,affiliate:false,newsletter:false};
 const granted={...denied,preferences:true,affiliate:true,newsletter:true};
+const newGranted={...granted,version:2,analytics:true,googleAnalytics:true};
+assert.equal(load(granted).consent.allowed('analytics'),false);
+assert.equal(load(granted).consent.allowed('googleAnalytics'),false);
+assert.equal(load(newGranted).consent.allowed('analytics'),true);
+assert.equal(load(newGranted).consent.allowed('googleAnalytics'),true);
+assert.equal(load({...newGranted,analytics:false}).consent.allowed('analytics'),false);
 for(const value of [undefined,denied,{...granted,at:Date.now()-181*86400000},{...granted,affiliate:'true'}]){
   const {consent,storage}=load(value);
   assert.equal(consent.allowed('affiliate'),false);
