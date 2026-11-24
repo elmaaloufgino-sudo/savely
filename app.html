@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="sv">
 <head>
+<script src="/cookie-consent.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Fyndaren-appen – sök erbjudanden och jämför priser</title>
@@ -501,6 +502,7 @@ html.js:not(.deals-ready) footer{visibility:hidden}
 footer a{display:inline-block;line-height:20px}
 footer a{text-decoration:none;text-underline-offset:3px}
 footer a:hover{text-decoration:underline}
+.footer-links{flex-wrap:wrap;justify-content:center;white-space:normal}
 @media(min-width:768px){
   header{padding-top:22px;padding-bottom:20px}
   .brand p{max-width:none}
@@ -1433,7 +1435,7 @@ nav{
   <label class="search"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="q" type="search" placeholder="Sök butik eller produkt…" aria-label="Sök butik eller produkt"></label>
 </div>
 <main id="main"></main>
-<footer><div class="disc">Vissa länkar är annonslänkar. Fyndaren kan få provision om du handlar via dem, utan extra kostnad för dig. <a href="om-oss.html">Läs mer</a></div><div class="footer-links"><a href="integritetspolicy.html">Integritetspolicy</a><span aria-hidden="true">·</span><a href="om-oss.html">Om Fyndaren</a></div><a class="footer-email" href="mailto:hej@fyndaren.se">hej@fyndaren.se</a></footer>
+<footer><div class="disc">Vissa länkar är annonslänkar. Fyndaren kan få provision om du handlar via dem, utan extra kostnad för dig. <a href="om-oss.html">Läs mer</a></div><div class="footer-links"><a href="integritetspolicy.html">Integritetspolicy</a><span aria-hidden="true">·</span><a href="om-oss.html">Om Fyndaren</a></div><div class="footer-links"><a href="/cookiepolicy.html">Cookiepolicy</a> · <button type="button" data-fynd-cookie-settings>Cookieinställningar</button></div><a class="footer-email" href="mailto:hej@fyndaren.se">hej@fyndaren.se</a></footer>
 <nav aria-label="Huvudmeny">
   <button data-tab="offers"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8v10h-6v-6H9v6H3z"/></svg>Erbjudanden</button>
   <button data-tab="compare"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6l2 2 3-3M4 14l2 2 3-3M13 7h8M13 15h8"/></svg>Jämför</button>
@@ -1504,13 +1506,14 @@ const CATS=['Alla','Mat & Dryck','Skönhet & Personlig vård','Hem & Inredning',
 const ICONS={'Mat & Dryck':'🥗','Skönhet & Personlig vård':'✨','Hem & Inredning':'🛋️',Elektronik:'📱',Apotek:'💊',Kläder:'👕','Bygg & Hemmafix':'🛠️'};
 const VALID_TABS=['offers','compare','codes','list','rewards','adminRewards'];
 function readSavedTab(){
+  if(!window.FyndarenConsent?.allowed('preferences'))return 'offers';
   try{const saved=localStorage.getItem('fyndaren-active-tab');return VALID_TABS.includes(saved)?saved:'offers'}catch(e){return 'offers'}
 }
 function setActiveTab(nextTab){
   if(!VALID_TABS.includes(nextTab))return;
   tab=nextTab;
   if(tab==='codes')loadCodes();
-  try{localStorage.setItem('fyndaren-active-tab',tab)}catch(e){}
+  try{if(window.FyndarenConsent?.allowed('preferences'))localStorage.setItem('fyndaren-active-tab',tab)}catch(e){}
 }
 let anim=true,DATA=[],loading=true,err='',tab=readSavedTab(),cat='Alla',q='',hideMem=false,sortMode='recommended',cmp='',favs=new Set(),user=null,rewardSummary={available_points:0,pending_points:0,expiring_soon_points:0,next_expiry_at:null},rewardLoading=false,rewardError='',rewardHistory=[],rewardHistoryLoading=false,rewardHistoryError='',rewardCatalog=[],rewardCatalogLoading=false,rewardCatalogError='',rewardRedeemingId=null,rewardRedemptions=[],rewardRedemptionsLoading=false,rewardRedemptionsError='',isRewardAdmin=false,rewardAdminChecked=false,adminRedemptions=[],adminRedemptionsLoading=false,adminRedemptionsError='',adminRedemptionFilter='open',adminUpdatingId=null;
 
@@ -1576,6 +1579,7 @@ function appendOffers(){
 }
 const previewKey='fyndaren-deals-preview-v1';
 function readDealPreview(){
+  if(!window.FyndarenConsent?.allowed('preferences'))return [];
   try{
     const preview=JSON.parse(localStorage.getItem(previewKey));
     const age=Date.now()-preview.savedAt;
@@ -1659,7 +1663,7 @@ async function loadDeals(){
       if(error)throw error;
       active.push(...data.map(norm).filter(o=>o.vt&&o.vt>=todayISO()));
       if(first){
-        try{localStorage.setItem(previewKey,JSON.stringify({savedAt:Date.now(),rows:data}))}catch{}
+        try{if(window.FyndarenConsent?.allowed('preferences'))localStorage.setItem(previewKey,JSON.stringify({savedAt:Date.now(),rows:data}))}catch{}
       }
       if(data.length<limit)break;
       cursor=data[data.length-1].id;
@@ -1944,7 +1948,7 @@ function purchaseTerm(o){
   if(bundle)return 'Totalt '+bundle[2]+' vid köp av '+bundle[1]+' st';
   return '';
 }
-function card(o,index=99){const term=purchaseTerm(o);const f=favs.has(o.id);const hasOldPrice=Number(o.o)>0;const sv=hasOldPrice?Math.round((o.o-o.p)*100)/100:null;return `<article class="card" data-product="${o.id}"><div class="tile" style="--tc:${colr(o.col)}"><span class="badge">${o.lc?'Last chance':(offerBadge(o)|| (o.s==='Kappahl'&&/2 för 299/i.test(o.n)?'2 för 299:-':(hasOldPrice?'-'+pct(o)+'%':'Erbjudande')))}</span><button type="button" class="fav ${f?'on':''}" data-fav="${o.id}" onclick="event.preventDefault();event.stopPropagation();toggleFav(Number(this.dataset.fav));return false" aria-pressed="${f}" aria-label="${f?'Ta bort från sparlistan':'Spara i sparlistan'}">${heart}</button>${productVisual(o,index===0)}<span class="ptag">${kr(o.p)}</span></div><div class="info"><div class="store">${esc(o.s)}<span class="cat"> · ${esc(o.c)}</span></div><h3><a class="card-details" href="${esc(productPageUrl(o))}" data-card-details="${o.id}" aria-label="Öppna fyndsidan för ${esc(o.n)}">${esc(o.n)}</a></h3>${hasOldPrice?`<div class="price"><span class="previous-price"><small>${o.basis?'Lägsta pris 30 dagar':'Angivet tidigare pris'}</small><s>${kr(o.o)}</s></span><span class="sv">Spara ${kr(sv)}</span></div>`:''}${o.total!=null&&o.planSource?`<div class="mem">Minst ${kr(o.total)} med abonnemang</div>`:''}${recommendationNote(o)}${storeComparison(o)}${term?`<div class="mem">${esc(term)}</div>`:''}${o.u?`<div class="mute">Jmf: ${esc(o.u)}</div>`:''}${o.m?`<span class="mem">Kräver ${esc(o.m)}</span>`:''}${o.cond?`<div class="cond">${esc(o.cond)}</div>`:''}${o.e?`<div class="exp">${clock} ${esc(o.e)}</div>`:''}${o.k?`<div class="chk">Kontrollerad ${dm(o.k)}</div>`:''}${o.a?`<div class="go affiliate-go"><span class="affiliate-label">Annonslänk</span><a href="${esc(o.a)}" target="_blank" rel="sponsored nofollow noopener noreferrer">Till butiken ↗</a></div>`:(o.w?`<div class="go"><a class="pl" href="${esc(o.w)}" target="_blank" rel="noopener noreferrer">Till butiken ↗</a></div>`:`<div class="go"><button type="button" class="offer-cta" data-product-cta="${o.id}" aria-label="Visa erbjudandet för ${esc(o.n)}">Visa detaljer</button></div>`)}</div></article>`}
+function card(o,index=99){const term=purchaseTerm(o);const f=favs.has(o.id);const hasOldPrice=Number(o.o)>0;const sv=hasOldPrice?Math.round((o.o-o.p)*100)/100:null;return `<article class="card" data-product="${o.id}"><div class="tile" style="--tc:${colr(o.col)}"><span class="badge">${o.lc?'Last chance':(offerBadge(o)|| (o.s==='Kappahl'&&/2 för 299/i.test(o.n)?'2 för 299:-':(hasOldPrice?'-'+pct(o)+'%':'Erbjudande')))}</span><button type="button" class="fav ${f?'on':''}" data-fav="${o.id}" onclick="event.preventDefault();event.stopPropagation();toggleFav(Number(this.dataset.fav));return false" aria-pressed="${f}" aria-label="${f?'Ta bort från sparlistan':'Spara i sparlistan'}">${heart}</button>${productVisual(o,index===0)}<span class="ptag">${kr(o.p)}</span></div><div class="info"><div class="store">${esc(o.s)}<span class="cat"> · ${esc(o.c)}</span></div><h3><a class="card-details" href="${esc(productPageUrl(o))}" data-card-details="${o.id}" aria-label="Öppna fyndsidan för ${esc(o.n)}">${esc(o.n)}</a></h3>${hasOldPrice?`<div class="price"><span class="previous-price"><small>${o.basis?'Lägsta pris 30 dagar':'Angivet tidigare pris'}</small><s>${kr(o.o)}</s></span><span class="sv">Spara ${kr(sv)}</span></div>`:''}${o.total!=null&&o.planSource?`<div class="mem">Minst ${kr(o.total)} med abonnemang</div>`:''}${recommendationNote(o)}${storeComparison(o)}${term?`<div class="mem">${esc(term)}</div>`:''}${o.u?`<div class="mute">Jmf: ${esc(o.u)}</div>`:''}${o.m?`<span class="mem">Kräver ${esc(o.m)}</span>`:''}${o.cond?`<div class="cond">${esc(o.cond)}</div>`:''}${o.e?`<div class="exp">${clock} ${esc(o.e)}</div>`:''}${o.k?`<div class="chk">Kontrollerad ${dm(o.k)}</div>`:''}${o.a?`<div class="go affiliate-go"><span class="affiliate-label">Annonslänk</span><a data-fynd-affiliate="${esc(o.a)}" data-fynd-direct="${esc(o.w||'')}" href="${esc(window.FyndarenConsent?.affiliateUrl(o.a,o.w)||o.w||'#fynd-cookie-settings')}" target="_blank" rel="sponsored nofollow noopener noreferrer">Till butiken ↗</a></div>`:(o.w?`<div class="go"><a class="pl" href="${esc(o.w)}" target="_blank" rel="noopener noreferrer">Till butiken ↗</a></div>`:`<div class="go"><button type="button" class="offer-cta" data-product-cta="${o.id}" aria-label="Visa erbjudandet för ${esc(o.n)}">Visa detaljer</button></div>`)}</div></article>`}
 
 let galleryRequest;
 let moveGallery=null;
@@ -2078,7 +2082,7 @@ function openProduct(id,keepCarousel=false,trigger=null){
   ].join('');
   const url=o.a||o.w;
   activeProductId=o.id;
-  const cta=url?(o.a?'<span class="affiliate-label">Annonslänk</span>':'')+'<a class="product-cta" href="'+esc(url)+'" target="_blank" rel="'+(o.a?'sponsored nofollow noopener noreferrer':'noopener noreferrer')+'">Till butiken ↗</a>':'';
+  const cta=url?(o.a?'<span class="affiliate-label">Annonslänk</span>':'')+'<a class="product-cta" '+(o.a?'data-fynd-affiliate="'+esc(o.a)+'" data-fynd-direct="'+esc(o.w||'')+'" ':'')+'href="'+esc(o.a?(window.FyndarenConsent?.affiliateUrl(o.a,o.w)||o.w||'#fynd-cookie-settings'):url)+'" target="_blank" rel="'+(o.a?'sponsored nofollow noopener noreferrer':'noopener noreferrer')+'">Till butiken ↗</a>':'';
   const pilotEligible=isRewardAdmin && /^spartoo(?: se)?$/i.test(o.s) && /^https:\/\/www\.awin1\.com\/pclick\.php\?p=\d+&a=3149456&m=27159$/.test(url);
   const pilot=pilotEligible?'<button type="button" class="btn" data-spartoo-test="'+o.id+'">Testköp med poängspårning · endast admin</button><div role="status" data-pilot-status></div>':'';
   const carouselButtons=activeProductIds.length>1?'<button type="button" class="product-carousel-btn prev" data-product-prev aria-label="Föregående erbjudande" title="Föregående erbjudande">‹</button><button type="button" class="product-carousel-btn next" data-product-next aria-label="Nästa erbjudande" title="Nästa erbjudande">›</button>':'';
@@ -2384,7 +2388,7 @@ function codes(){
   if(codesState==='error')return '<h2>Rabattkoder</h2><div class="empty">Kunde inte hämta rabattkoderna.<button class="btn" data-retry-codes>Försök igen</button></div>';
   if(codesState!=='ready')return '<h2>Rabattkoder</h2><div class="empty"><b>Hämtar rabattkoder…</b></div>';
   if(!CODES.length)return '<h2>Rabattkoder</h2><div class="empty"><b>Inga rabattkoder just nu</b>Kom tillbaka snart.</div>';
-  return `<h2>Rabattkoder</h2>${CODES.map(c=>`<div class="row"><div class="logo" style="background:${colr(c.col)}">${esc(c.l)}</div><div class="t"><b>${esc(c.s)}</b><span>${esc(c.d)}</span>${c.a?`<div><a class="golink" href="${esc(c.a)}" target="_blank" rel="sponsored nofollow noopener noreferrer">Till butiken ↗</a> <span class="adl">Annonslänk</span></div>`:''}</div><button class="code" data-copy="${esc(c.code)}" aria-label="Kopiera koden ${esc(c.code)}">${esc(c.code)}</button></div>`).join('')}`}
+  return `<h2>Rabattkoder</h2>${CODES.map(c=>`<div class="row"><div class="logo" style="background:${colr(c.col)}">${esc(c.l)}</div><div class="t"><b>${esc(c.s)}</b><span>${esc(c.d)}</span>${c.a?`<div><a class="golink" data-fynd-affiliate="${esc(c.a)}" href="${esc(window.FyndarenConsent?.affiliateUrl(c.a)||'#fynd-cookie-settings')}" target="_blank" rel="sponsored nofollow noopener noreferrer">Till butiken ↗</a> <span class="adl">Annonslänk</span></div>`:''}</div><button class="code" data-copy="${esc(c.code)}" aria-label="Kopiera koden ${esc(c.code)}">${esc(c.code)}</button></div>`).join('')}`}
 
 function favoriteProductKey(o){
   if(verifiedProductKey(o))return verifiedProductKey(o);
@@ -2649,11 +2653,14 @@ async function toggleFav(id){
 document.addEventListener('click',async e=>{
   const button=e.target.closest('[data-spartoo-test]');
   if(!button || button.disabled)return;
+  const status=button.parentElement?.querySelector('[data-pilot-status]');
+  if(!window.FyndarenConsent?.allowed('affiliate')){if(status)status.textContent='Aktivera affiliate-spårning i cookieinställningarna för att testa poängspårning.';window.FyndarenConsent?.open(true,button);return;}
   button.disabled=true;
   try{
     const {data,error}=await sb.rpc('start_spartoo_pilot',{p_deal_id:Number(button.dataset.spartooTest)});
     if(error || !/^https:\/\/www\.awin1\.com\/pclick\.php\?/.test(data))throw new Error();
-    location.assign(data);
+    if(!window.FyndarenConsent?.allowed('affiliate')){button.disabled=false;return;}
+    location.assign(window.FyndarenConsent.affiliateUrl(data));
   }catch{
     const status=button.parentElement?.querySelector('[data-pilot-status]');
     if(status)status.textContent='Testlänken kunde inte skapas. Försök igen.';
