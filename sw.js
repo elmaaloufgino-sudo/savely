@@ -1,4 +1,4 @@
-const CACHE = 'fyndaren-v28';
+const CACHE = 'fyndaren-v29';
 
 // Kontrollera att varje fil här finns på servern. En saknad fil hoppas över,
 // men ger då ingen offline-support för just den filen.
